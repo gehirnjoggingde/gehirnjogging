@@ -6,6 +6,18 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import TimePickerModal from '../components/TimePickerModal';
 
+function Row({ label, value, action }) {
+  return (
+    <div className="flex items-center justify-between py-4 border-b border-gray-50 last:border-0">
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
+        <p className="text-sm font-medium text-gray-900">{value}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -13,101 +25,74 @@ export default function SettingsPage() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [timeLoading, setTimeLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [toast, setToast] = useState({ msg: '', type: 'success' });
+  const [toast, setToast] = useState({ msg: '', type: 'ok' });
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   useEffect(() => {
-    api.get('/users/me')
-      .then(setUser)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    api.get('/users/me').then(setUser).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  function showToast(msg, type = 'success') {
+  function showToast(msg, type = 'ok') {
     setToast({ msg, type });
-    setTimeout(() => setToast({ msg: '', type: 'success' }), 3500);
+    setTimeout(() => setToast({ msg: '', type: 'ok' }), 3500);
   }
 
   async function handleTimeChange(time) {
     setTimeLoading(true);
     try {
-      const updated = await api.put('/users/settings', { quiz_time: time });
-      setUser(updated);
-      setShowTimePicker(false);
+      const u = await api.put('/users/settings', { quiz_time: time });
+      setUser(u); setShowTimePicker(false);
       showToast(`Quiz-Zeit auf ${time} Uhr gespeichert`);
-    } catch (err) {
-      showToast(err.response?.data?.error || 'Fehler beim Speichern', 'error');
-    } finally {
-      setTimeLoading(false);
-    }
+    } catch (err) { showToast(err.response?.data?.error || 'Fehler', 'err'); }
+    finally { setTimeLoading(false); }
   }
 
-  async function handleCancelSubscription() {
+  async function handleCancel() {
     setCancelLoading(true);
     try {
       await api.post('/payment/cancel');
       showToast('Abonnement wird zum Ende des Zeitraums gekündigt');
       setShowCancelConfirm(false);
-      const updated = await api.get('/users/me');
-      setUser(updated);
-    } catch (err) {
-      showToast(err.response?.data?.error || 'Fehler bei der Kündigung', 'error');
-    } finally {
-      setCancelLoading(false);
-    }
+      const u = await api.get('/users/me'); setUser(u);
+    } catch (err) { showToast(err.response?.data?.error || 'Fehler', 'err'); }
+    finally { setCancelLoading(false); }
   }
 
-  function handleLogout() {
-    clearAuth();
-    navigate('/');
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center text-gray-400 animate-pulse">Laden…</div>
-      </div>
-    );
-  }
-
-  return (
+  if (loading) return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-brand-300 border-t-brand-600 rounded-full animate-spin" />
+      </div>
+    </div>
+  );
 
-      {/* Toast */}
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+
       {toast.msg && (
-        <div className={`fixed top-20 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full text-sm shadow-lg z-50 ${
-          toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
-        }`}>
-          {toast.msg}
-        </div>
+        <div className={`fixed top-20 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full text-sm shadow-lg z-50 whitespace-nowrap ${
+          toast.type === 'err' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
+        }`}>{toast.msg}</div>
       )}
 
       {showTimePicker && (
-        <TimePickerModal
-          currentTime={user?.quiz_time}
-          onSave={handleTimeChange}
-          onClose={() => setShowTimePicker(false)}
-          loading={timeLoading}
-        />
+        <TimePickerModal currentTime={user?.quiz_time} onSave={handleTimeChange}
+          onClose={() => setShowTimePicker(false)} loading={timeLoading} />
       )}
 
-      {/* Cancel confirmation modal */}
       {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Abonnement kündigen?</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Dein Quiz läuft bis zum Ende des aktuellen Abrechnungszeitraums weiter.
-              Danach werden keine weiteren Zahlungen eingezogen.
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Wirklich kündigen?</h2>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              Dein Quiz läuft bis zum Ende des aktuellen Abrechnungszeitraums weiter. Danach werden keine Zahlungen mehr eingezogen.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setShowCancelConfirm(false)} className="btn-secondary flex-1">
-                Zurück
-              </button>
-              <button onClick={handleCancelSubscription} disabled={cancelLoading} className="btn-danger flex-1">
-                {cancelLoading ? 'Bitte warten…' : 'Kündigen'}
+              <button onClick={() => setShowCancelConfirm(false)} className="btn-secondary flex-1">Zurück</button>
+              <button onClick={handleCancel} disabled={cancelLoading} className="btn-danger flex-1">
+                {cancelLoading ? '…' : 'Kündigen'}
               </button>
             </div>
           </div>
@@ -115,98 +100,69 @@ export default function SettingsPage() {
       )}
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Einstellungen</h1>
+        <h1 className="text-2xl font-extrabold text-gray-900 mb-6">Einstellungen</h1>
 
-        {/* Account info */}
-        <section className="mb-6">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Konto</h2>
-          <div className="card space-y-4">
-            <div>
-              <p className="label">Name</p>
-              <p className="text-gray-900 font-medium">{user?.name}</p>
-            </div>
-            <div className="border-t border-gray-50" />
-            <div>
-              <p className="label">E-Mail</p>
-              <p className="text-gray-900">{user?.email}</p>
-            </div>
-            <div className="border-t border-gray-50" />
-            <div>
-              <p className="label">WhatsApp-Nummer</p>
-              <p className="text-gray-900">{user?.phone}</p>
-            </div>
+        {/* Account */}
+        <section className="mb-4">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Konto</p>
+          <div className="card">
+            <Row label="Name" value={user?.name} />
+            <Row label="E-Mail" value={user?.email} />
+            <Row label="WhatsApp" value={user?.phone} />
           </div>
         </section>
 
-        {/* Quiz settings */}
-        <section className="mb-6">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Quiz-Einstellungen</h2>
+        {/* Quiz */}
+        <section className="mb-4">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Quiz</p>
           <div className="card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-900">Quiz-Uhrzeit</p>
-                <p className="text-sm text-gray-500">Täglich um <strong>{user?.quiz_time} Uhr</strong></p>
-              </div>
-              <button onClick={() => setShowTimePicker(true)} className="btn-secondary text-sm py-2 px-4">
-                Ändern
-              </button>
-            </div>
+            <Row
+              label="Quiz-Uhrzeit"
+              value={`Täglich um ${user?.quiz_time} Uhr`}
+              action={
+                <button onClick={() => setShowTimePicker(true)} className="btn-secondary text-sm py-2 px-3 flex-shrink-0">
+                  Ändern
+                </button>
+              }
+            />
           </div>
         </section>
 
         {/* Subscription */}
-        <section className="mb-6">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Abonnement</h2>
-          <div className="card space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-900">Status</p>
-                <div className="flex items-center gap-2 mt-0.5">
+        <section className="mb-4">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Abonnement</p>
+          <div className="card">
+            <Row
+              label="Status"
+              value={
+                <span className="flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${
                     user?.subscription_status === 'active' ? 'bg-green-500' :
-                    user?.subscription_status === 'paused' ? 'bg-yellow-500' : 'bg-red-400'
+                    user?.subscription_status === 'paused' ? 'bg-yellow-400' : 'bg-red-400'
                   }`} />
-                  <span className="text-sm text-gray-500">
-                    {user?.subscription_status === 'active' ? 'Aktiv – 2,99€/Monat' :
-                     user?.subscription_status === 'paused' ? 'Pausiert' :
-                     user?.subscription_status === 'cancelled' ? 'Gekündigt' : user?.subscription_status}
-                  </span>
-                </div>
-              </div>
-            </div>
-
+                  {user?.subscription_status === 'active' ? 'Aktiv · 2,99 €/Monat' :
+                   user?.subscription_status === 'paused' ? 'Pausiert' :
+                   user?.subscription_status === 'cancelled' ? 'Gekündigt' : user?.subscription_status}
+                </span>
+              }
+            />
             {user?.subscription_status === 'active' && (
-              <>
-                <div className="border-t border-gray-50" />
-                <div>
-                  <p className="text-sm text-gray-500 mb-3">
-                    Dein Abonnement verlängert sich automatisch. Du kannst jederzeit kündigen.
-                  </p>
-                  <button
-                    onClick={() => setShowCancelConfirm(true)}
-                    className="text-sm text-red-600 hover:text-red-800 font-medium"
-                  >
-                    Abonnement kündigen →
-                  </button>
-                </div>
-              </>
-            )}
-
-            {user?.subscription_status === 'cancelled' && (
-              <p className="text-sm text-gray-500">
-                Dein Abonnement wurde gekündigt. Du kannst dich jederzeit neu anmelden.
-              </p>
+              <div className="pt-3">
+                <button onClick={() => setShowCancelConfirm(true)} className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors">
+                  Abonnement kündigen →
+                </button>
+              </div>
             )}
           </div>
         </section>
 
-        {/* Sign out */}
+        {/* Logout */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Sitzung</h2>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Sitzung</p>
           <div className="card">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">Auf diesem Gerät abmelden</p>
-              <button onClick={handleLogout} className="text-sm text-red-600 font-medium hover:text-red-800">
+              <button onClick={() => { clearAuth(); navigate('/'); }} className="text-sm text-red-500 font-semibold hover:text-red-700 transition-colors">
                 Abmelden
               </button>
             </div>

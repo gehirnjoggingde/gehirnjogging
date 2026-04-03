@@ -5,6 +5,9 @@ import SignupPage from './pages/SignupPage';
 import PaymentPage from './pages/PaymentPage';
 import Dashboard from './pages/Dashboard';
 import SettingsPage from './pages/SettingsPage';
+import Impressum from './pages/Impressum';
+import Datenschutz from './pages/Datenschutz';
+import AGB from './pages/AGB';
 
 function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" replace />;
@@ -17,15 +20,12 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<SignupPage mode="login" />} />
-        <Route path="/payment" element={
-          <PrivateRoute><PaymentPage /></PrivateRoute>
-        } />
-        <Route path="/dashboard" element={
-          <PrivateRoute><Dashboard /></PrivateRoute>
-        } />
-        <Route path="/settings" element={
-          <PrivateRoute><SettingsPage /></PrivateRoute>
-        } />
+        <Route path="/payment" element={<PrivateRoute><PaymentPage /></PrivateRoute>} />
+        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+        <Route path="/impressum" element={<Impressum />} />
+        <Route path="/datenschutz" element={<Datenschutz />} />
+        <Route path="/agb" element={<AGB />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

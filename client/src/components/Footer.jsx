@@ -1,17 +1,30 @@
+import { Link } from 'react-router-dom';
+
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-gray-100 py-8 mt-auto">
-      <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🧠</span>
-          <span className="font-semibold text-gray-600">Gehirnjogging</span>
+    <footer className="bg-gray-950 text-gray-400 py-12 mt-auto">
+      <div className="max-w-5xl mx-auto px-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+          {/* Brand */}
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="Gehirnjogging" className="h-7 w-7 object-contain opacity-80" />
+            <span className="font-bold text-white tracking-tight">
+              Gehirn<span className="text-brand-400">jogging</span>
+            </span>
+          </div>
+
+          {/* Links */}
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+            <Link to="/impressum" className="hover:text-white transition-colors">Impressum</Link>
+            <Link to="/datenschutz" className="hover:text-white transition-colors">Datenschutz</Link>
+            <Link to="/agb" className="hover:text-white transition-colors">AGB</Link>
+          </div>
+
+          {/* Copyright */}
+          <p className="text-xs text-gray-600">
+            © {new Date().getFullYear()} Hannes Herwig
+          </p>
         </div>
-        <div className="flex gap-6">
-          <a href="/datenschutz" className="hover:text-gray-700">Datenschutz</a>
-          <a href="/impressum" className="hover:text-gray-700">Impressum</a>
-          <a href="/agb" className="hover:text-gray-700">AGB</a>
-        </div>
-        <p>© {new Date().getFullYear()} Gehirnjogging. Alle Rechte vorbehalten.</p>
       </div>
     </footer>
   );

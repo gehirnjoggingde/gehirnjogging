@@ -21,8 +21,8 @@ router.post('/create-checkout', authMiddleware, async (req, res) => {
         price_data: {
           currency: 'eur',
           product_data: {
-            name: 'Gehirnjogging – Täglich klüger per WhatsApp',
-            description: '7 Tage kostenlos testen · Danach 2,99 €/Monat · Jederzeit kündbar',
+            name: 'Gehirnjogging',
+            description: 'Täglich klüger per WhatsApp · Jederzeit kündbar',
           },
           unit_amount: 299, // 2,99€ in Cent
           recurring: { interval: 'month' },

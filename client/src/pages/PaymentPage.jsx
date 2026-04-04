@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { getUser } from '../services/auth';
 
 const FEATURES = [
-  { icon: '📲', text: 'Täglich eine Quizfrage direkt auf WhatsApp' },
+  { icon: '📲', text: 'Tägliches Gehirnjogging – bis zu 5 Fragen auf WhatsApp' },
   { icon: '🕐', text: 'Uhrzeit frei wählbar – wann es dir passt' },
   { icon: '📚', text: '8 Themenkategorien zur Auswahl' },
   { icon: '💡', text: 'Sofortige Erklärung nach jeder Antwort' },
@@ -117,7 +117,7 @@ export default function PaymentPage() {
             <div className="mx-6 mb-5 bg-gray-50 rounded-2xl p-4 border border-gray-100">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-500">Heute</span>
-                <span className="font-bold text-green-600">0,00 €</span>
+                <span className="font-bold text-green-600">Kostenlos</span>
               </div>
               <div className="flex justify-between text-sm mb-3">
                 <span className="text-gray-500">Ab dem 8. Tag</span>

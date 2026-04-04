@@ -140,12 +140,12 @@ export default function LandingPage() {
 
       {/* ── Social proof ─────────────────────────────────── */}
       <section className="bg-gray-50 border-y border-gray-100 py-4 px-4">
-        <div className="max-w-xl mx-auto flex justify-around text-sm text-gray-500 font-medium">
-          <span>⭐ 4,9/5 Bewertung</span>
-          <span className="text-gray-200">|</span>
-          <span>⚡ In 2 Minuten startklar</span>
-          <span className="text-gray-200">|</span>
-          <span>↩️ Jederzeit kündbar</span>
+        <div className="max-w-xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-0 text-sm text-gray-500 font-medium">
+          <span className="flex items-center gap-1.5">⭐ <span>4,9/5 Bewertung</span></span>
+          <span className="hidden sm:block text-gray-200 mx-5">|</span>
+          <span className="flex items-center gap-1.5">⚡ <span>In 2 Minuten startklar</span></span>
+          <span className="hidden sm:block text-gray-200 mx-5">|</span>
+          <span className="flex items-center gap-1.5">↩️ <span>Jederzeit kündbar</span></span>
         </div>
       </section>
 

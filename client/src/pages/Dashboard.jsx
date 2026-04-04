@@ -153,12 +153,33 @@ export default function Dashboard() {
 
   function handleCopyReferral() {
     const link = `https://gehirnjoggingclub.de/signup?ref=${user?.id?.slice(0, 8) || 'friend'}`;
-    navigator.clipboard.writeText(link).then(() => {
+
+    function onSuccess() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-    }).catch(() => {
-      showToast('Link: ' + link);
-    });
+    }
+
+    function fallbackCopy() {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = link;
+        ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) { onSuccess(); } else { showToast('Link: ' + link); }
+      } catch {
+        showToast('Link: ' + link);
+      }
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(link).then(onSuccess).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
   }
 
   if (loading) return (

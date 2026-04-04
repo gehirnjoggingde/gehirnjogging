@@ -153,7 +153,7 @@ export default function LandingPage() {
       <section id="wie" className="section bg-white">
         <div className="container">
           <Reveal className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">In 3 Schritten startklar</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Drei Schritte. Das war's.</h2>
             {/* One-liner on desktop */}
             <p className="text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
               Kein Schnickschnack. Einfach anmelden und täglich klüger werden.

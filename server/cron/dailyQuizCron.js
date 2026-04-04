@@ -1,18 +1,7 @@
 const cron = require('node-cron');
 const supabase = require('../services/supabaseClient');
 const { sendQuiz } = require('../services/twilioService');
-const { getTodayQuestion } = require('../services/quizService');
-
-/**
- * Cron runs every 5 minutes.
- * For each active user whose quiz_time matches (±4 min), we send the daily quiz.
- *
- * Schedules in UTC. If your users are in Germany (CET = UTC+1, CEST = UTC+2),
- * you need to subtract 1 or 2 hours from the times they set.
- * Simpler approach: store times in UTC in the DB and let the frontend convert.
- *
- * For MVP: we send at the exact UTC minute the user has set.
- */
+const { getQuestionsForUser } = require('../services/quizService');
 
 // Run every 5 minutes
 cron.schedule('*/5 * * * *', async () => {
@@ -21,111 +10,84 @@ cron.schedule('*/5 * * * *', async () => {
 
 async function runQuizDispatch() {
   const now = new Date();
-  const currentHour = now.getUTCHours();
+  const currentHour   = now.getUTCHours();
   const currentMinute = now.getUTCMinutes();
+  console.log(`[Cron] Dispatch at ${pad(currentHour)}:${pad(currentMinute)} UTC`);
 
-  console.log(`[Cron] Running quiz dispatch at ${pad(currentHour)}:${pad(currentMinute)} UTC`);
-
-  // Fetch all active, non-paused users
   const { data: users, error } = await supabase
     .from('users')
-    .select('id, name, phone, quiz_time')
+    .select('id, name, phone, quiz_time, daily_question_count, difficulty_level, preferred_categories')
     .eq('is_paused', false)
     .in('subscription_status', ['active']);
 
-  if (error) {
-    console.error('[Cron] Failed to fetch users:', error);
-    return;
-  }
+  if (error) { console.error('[Cron] Fetch error:', error); return; }
+  if (!users?.length) { console.log('[Cron] No active users'); return; }
 
-  if (!users || users.length === 0) {
-    console.log('[Cron] No active users found');
-    return;
-  }
-
-  // Filter users whose quiz_time falls within the current 5-minute window
-  const targets = users.filter(user => {
-    if (!user.quiz_time) return false;
-    const [hh, mm] = user.quiz_time.split(':').map(Number);
-    // Accept if the user's time is within [currentMinute-4, currentMinute]
-    const userMinutesTotal = hh * 60 + mm;
-    const nowMinutesTotal = currentHour * 60 + currentMinute;
-    return Math.abs(userMinutesTotal - nowMinutesTotal) <= 4;
+  // Filter by time window (±4 min)
+  const targets = users.filter(u => {
+    if (!u.quiz_time) return false;
+    const [hh, mm] = u.quiz_time.split(':').map(Number);
+    return Math.abs((hh * 60 + mm) - (currentHour * 60 + currentMinute)) <= 4;
   });
 
-  if (targets.length === 0) {
-    console.log('[Cron] No users scheduled for this window');
-    return;
-  }
+  if (!targets.length) { console.log('[Cron] No users in this window'); return; }
 
-  // Get today's question (same question for everyone)
-  let question;
-  try {
-    question = await getTodayQuestion();
-  } catch (err) {
-    console.error('[Cron] Failed to get today\'s question:', err);
-    return;
-  }
+  console.log(`[Cron] Sending to ${targets.length} users`);
 
-  if (!question) {
-    console.error('[Cron] No question available for today');
-    return;
-  }
-
-  console.log(`[Cron] Sending quiz to ${targets.length} users`);
-
-  // Send to each user with rate limiting (avoid Twilio rate limits)
   for (const user of targets) {
     try {
-      await sendQuizToUser(user, question);
-      // Small delay between messages
-      await sleep(200);
+      await sendQuizToUser(user);
+      await sleep(300);
     } catch (err) {
-      console.error(`[Cron] Failed to send to ${user.phone}:`, err.message);
+      console.error(`[Cron] Failed for ${user.phone}:`, err.message);
     }
   }
 
-  console.log('[Cron] Dispatch complete');
+  console.log('[Cron] Done');
 }
 
-async function sendQuizToUser(user, question) {
-  // Check if user already received today's quiz
+async function sendQuizToUser(user) {
   const today = new Date().toISOString().split('T')[0];
+  const count = user.daily_question_count || 1;
 
-  const { data: existing } = await supabase
+  // Check how many already sent today
+  const { data: sentToday } = await supabase
     .from('user_answers')
-    .select('id')
+    .select('question_id')
     .eq('user_id', user.id)
-    .eq('question_id', question.id)
-    .gte('answered_at', `${today}T00:00:00`)
-    .single();
+    .gte('answered_at', `${today}T00:00:00`);
 
-  if (existing) {
-    console.log(`[Cron] ${user.phone} already received today's quiz – skipping`);
+  const alreadySentCount = sentToday?.length || 0;
+  const remaining = count - alreadySentCount;
+
+  if (remaining <= 0) {
+    console.log(`[Cron] ${user.phone} already received all ${count} questions today`);
     return;
   }
 
-  // Send WhatsApp message
-  await sendQuiz(user.phone, question);
+  const questions = await getQuestionsForUser(user, remaining);
+  if (!questions.length) {
+    console.error(`[Cron] No questions available for ${user.phone}`);
+    return;
+  }
 
-  // Record that the quiz was sent (null answer = pending)
-  await supabase.from('user_answers').insert({
-    user_id: user.id,
-    question_id: question.id,
-    user_answer: null,
-    is_correct: false,
-    answered_at: new Date().toISOString(),
-  });
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    await sendQuiz(user.phone, q, i + 1 + alreadySentCount, count);
+    await supabase.from('user_answers').insert({
+      user_id: user.id,
+      question_id: q.id,
+      user_answer: null,
+      is_correct: false,
+      answered_at: new Date().toISOString(),
+    });
+    if (i < questions.length - 1) await sleep(2000);
+  }
 
-  console.log(`[Cron] ✓ Sent to ${user.phone}`);
+  console.log(`[Cron] ✓ Sent ${questions.length} question(s) to ${user.phone}`);
 }
 
-function pad(n) {
-  return String(n).padStart(2, '0');
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+function pad(n) { return String(n).padStart(2, '0'); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 module.exports = { runQuizDispatch };

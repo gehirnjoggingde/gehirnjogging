@@ -5,53 +5,68 @@ const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 router.use(authMiddleware);
 
+const VALID_CATEGORIES = [
+  'allgemeinwissen', 'psychologie', 'geschichte',
+  'wissenschaft', 'philosophie', 'wirtschaft',
+  'natur', 'kultur',
+];
+
 // GET /api/users/me
 router.get('/me', async (req, res) => {
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, email, name, phone, quiz_time, is_paused, subscription_status, created_at')
+    .select('id, email, name, phone, quiz_time, is_paused, subscription_status, created_at, daily_question_count, difficulty_level, preferred_categories')
     .eq('id', req.user.id)
     .single();
 
-  if (error || !user) {
-    return res.status(404).json({ error: 'Benutzer nicht gefunden' });
-  }
-
+  if (error || !user) return res.status(404).json({ error: 'Benutzer nicht gefunden' });
   return res.json(user);
 });
 
 // PUT /api/users/settings
-// Body: { quiz_time?, is_paused? }
 router.put('/settings', async (req, res) => {
-  const { quiz_time, is_paused } = req.body;
+  const { quiz_time, is_paused, daily_question_count, difficulty_level, preferred_categories } = req.body;
   const updates = {};
 
   if (quiz_time !== undefined) {
-    // Validate HH:MM format
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(quiz_time)) {
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(quiz_time))
       return res.status(400).json({ error: 'Ungültiges Zeitformat. Erwartet HH:MM' });
-    }
-    // Only allow times between 09:00 and 22:00
-    const [hours] = quiz_time.split(':').map(Number);
-    if (hours < 9 || hours > 22) {
+    const [h] = quiz_time.split(':').map(Number);
+    if (h < 9 || h > 22)
       return res.status(400).json({ error: 'Quiz-Zeit muss zwischen 09:00 und 22:00 liegen' });
-    }
     updates.quiz_time = quiz_time;
   }
 
   if (is_paused !== undefined) {
     updates.is_paused = Boolean(is_paused);
-    // Sync subscription_status with pause state
-    if (Boolean(is_paused)) {
-      updates.subscription_status = 'paused';
-    } else {
-      updates.subscription_status = 'active';
-    }
+    updates.subscription_status = Boolean(is_paused) ? 'paused' : 'active';
   }
 
-  if (Object.keys(updates).length === 0) {
-    return res.status(400).json({ error: 'Keine Änderungen angegeben' });
+  if (daily_question_count !== undefined) {
+    const count = parseInt(daily_question_count);
+    if (count < 1 || count > 5)
+      return res.status(400).json({ error: 'Anzahl muss zwischen 1 und 5 liegen' });
+    updates.daily_question_count = count;
   }
+
+  if (difficulty_level !== undefined) {
+    const level = parseInt(difficulty_level);
+    if (level < 1 || level > 10)
+      return res.status(400).json({ error: 'Schwierigkeitsgrad muss zwischen 1 und 10 liegen' });
+    updates.difficulty_level = level;
+  }
+
+  if (preferred_categories !== undefined) {
+    if (!Array.isArray(preferred_categories) || preferred_categories.length === 0)
+      return res.status(400).json({ error: 'Mindestens eine Kategorie auswählen' });
+    const invalid = preferred_categories.filter(c => !VALID_CATEGORIES.includes(c));
+    if (invalid.length > 0)
+      return res.status(400).json({ error: `Ungültige Kategorien: ${invalid.join(', ')}` });
+    updates.preferred_categories = preferred_categories;
+  }
+
+  if (Object.keys(updates).length === 0)
+    return res.status(400).json({ error: 'Keine Änderungen angegeben' });
 
   updates.updated_at = new Date().toISOString();
 
@@ -59,7 +74,7 @@ router.put('/settings', async (req, res) => {
     .from('users')
     .update(updates)
     .eq('id', req.user.id)
-    .select('id, email, name, phone, quiz_time, is_paused, subscription_status')
+    .select('id, email, name, phone, quiz_time, is_paused, subscription_status, daily_question_count, difficulty_level, preferred_categories')
     .single();
 
   if (error) {
@@ -71,38 +86,21 @@ router.put('/settings', async (req, res) => {
 });
 
 // POST /api/users/skip-today
-// Marks today's quiz as skipped (by inserting a null answer record)
 router.post('/skip-today', async (req, res) => {
-  // Get today's question
   const today = new Date().toISOString().split('T')[0];
-
   const { data: question } = await supabase
-    .from('quiz_questions')
-    .select('id')
-    .eq('scheduled_date', today)
-    .single();
+    .from('quiz_questions').select('id').eq('scheduled_date', today).single();
 
-  if (!question) {
-    return res.json({ message: 'Kein Quiz für heute gefunden' });
-  }
+  if (!question) return res.json({ message: 'Kein Quiz für heute gefunden' });
 
-  // Check if already answered/skipped
   const { data: existing } = await supabase
-    .from('user_answers')
-    .select('id')
-    .eq('user_id', req.user.id)
-    .eq('question_id', question.id)
-    .single();
+    .from('user_answers').select('id')
+    .eq('user_id', req.user.id).eq('question_id', question.id).single();
 
-  if (existing) {
-    return res.json({ message: 'Quiz wurde bereits beantwortet oder übersprungen' });
-  }
+  if (existing) return res.json({ message: 'Quiz wurde bereits beantwortet oder übersprungen' });
 
   await supabase.from('user_answers').insert({
-    user_id: req.user.id,
-    question_id: question.id,
-    user_answer: null,
-    is_correct: false,
+    user_id: req.user.id, question_id: question.id, user_answer: null, is_correct: false,
   });
 
   return res.json({ message: 'Quiz für heute übersprungen' });

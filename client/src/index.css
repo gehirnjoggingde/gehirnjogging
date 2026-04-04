@@ -4,130 +4,150 @@
 
 @layer base {
   html { scroll-behavior: smooth; }
-  body {
-    @apply bg-white text-gray-900 antialiased;
-    font-family: 'Inter', sans-serif;
-  }
+  body { @apply bg-white text-gray-900 antialiased; font-family: 'Inter', sans-serif; }
   * { box-sizing: border-box; }
 }
 
 @layer components {
-  /* ── Buttons ─────────────────────────────── */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2
-           px-6 py-3 rounded-xl font-semibold text-sm
-           bg-brand-600 text-white
-           hover:bg-brand-500 active:scale-[.97]
-           transition-all duration-150
-           disabled:opacity-50 disabled:cursor-not-allowed
-           shadow-sm;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm
+           bg-brand-600 text-white hover:bg-brand-500 active:scale-[.97]
+           transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
   }
   .btn-outline-white {
-    @apply inline-flex items-center justify-center gap-2
-           px-6 py-3 rounded-xl font-semibold text-sm
-           bg-transparent text-white
-           border-2 border-white/40
-           hover:bg-white/10 hover:border-white/70
-           active:scale-[.97] transition-all duration-150;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm
+           bg-transparent text-white border-2 border-white/40
+           hover:bg-white/10 hover:border-white/70 active:scale-[.97] transition-all duration-150;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2
-           px-6 py-3 rounded-xl font-semibold text-sm
-           bg-white text-brand-700
-           border border-gray-200
-           hover:border-brand-300 hover:bg-brand-50
-           active:scale-[.97] transition-all duration-150
-           disabled:opacity-50;
-  }
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2
-           px-4 py-2 rounded-lg font-medium text-sm
-           text-gray-600 hover:text-gray-900 hover:bg-gray-100
-           active:scale-[.97] transition-all duration-150;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm
+           bg-white text-brand-700 border border-gray-200
+           hover:border-brand-300 hover:bg-brand-50 active:scale-[.97] transition-all duration-150 disabled:opacity-50;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2
-           px-6 py-3 rounded-xl font-semibold text-sm
-           bg-red-600 text-white
-           hover:bg-red-700 active:scale-[.97]
-           transition-all duration-150
-           disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm
+           bg-red-600 text-white hover:bg-red-700 active:scale-[.97] transition-all duration-150 disabled:opacity-50;
   }
-
-  /* ── Cards ───────────────────────────────── */
-  .card {
-    @apply bg-white rounded-2xl border border-gray-100 p-5 shadow-card;
-  }
-  .card-hover {
-    @apply card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 cursor-default;
-  }
-
-  /* ── Form ────────────────────────────────── */
+  .card { @apply bg-white rounded-2xl border border-gray-100 p-5 shadow-card; }
+  .card-hover { @apply card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200; }
   .input {
-    @apply w-full px-4 py-3 border border-gray-200 rounded-xl text-sm
-           bg-white text-gray-900 placeholder-gray-400
-           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
-           transition-all duration-150;
+    @apply w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white text-gray-900
+           placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-150;
   }
-  .label {
-    @apply block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5;
-  }
+  .label { @apply block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5; }
   .error-text { @apply text-xs text-red-600 mt-1.5; }
-
-  /* ── Section wrapper ─────────────────────── */
   .section { @apply py-16 px-4 sm:py-24; }
   .container { @apply max-w-5xl mx-auto; }
   .container-sm { @apply max-w-2xl mx-auto; }
 }
 
-/* ── Animations ──────────────────────────────────────────── */
-
-/* Floating – used on WhatsApp mockup */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-12px); }
+/* ── Scroll reveal ───────────────────────────────────────── */
+.fade-up {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.65s cubic-bezier(.16,1,.3,1), transform 0.65s cubic-bezier(.16,1,.3,1);
 }
-.animate-float {
-  animation: float 4s ease-in-out infinite;
+.fade-up.in-view { opacity: 1; transform: translateY(0); }
+
+.fade-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.65s cubic-bezier(.16,1,.3,1), transform 0.65s cubic-bezier(.16,1,.3,1);
+}
+.fade-left.in-view { opacity: 1; transform: translateX(0); }
+
+.fade-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.65s cubic-bezier(.16,1,.3,1), transform 0.65s cubic-bezier(.16,1,.3,1);
+}
+.fade-right.in-view { opacity: 1; transform: translateX(0); }
+
+.scale-in {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.55s cubic-bezier(.16,1,.3,1), transform 0.55s cubic-bezier(.16,1,.3,1);
+}
+.scale-in.in-view { opacity: 1; transform: scale(1); }
+
+/* Stagger delays */
+.delay-0  { transition-delay: 0ms !important; }
+.delay-1  { transition-delay: 80ms !important; }
+.delay-2  { transition-delay: 160ms !important; }
+.delay-3  { transition-delay: 240ms !important; }
+.delay-4  { transition-delay: 320ms !important; }
+.delay-5  { transition-delay: 400ms !important; }
+.delay-6  { transition-delay: 480ms !important; }
+.delay-7  { transition-delay: 560ms !important; }
+
+/* ── Chat message animation ──────────────────────────────── */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes typingDots {
+  0%,80%,100% { transform: scale(0.6); opacity: 0.4; }
+  40%         { transform: scale(1);   opacity: 1; }
 }
 
-/* Hero gradient shift */
+.chat-bubble-in  { animation: slideInLeft  0.4s cubic-bezier(.16,1,.3,1) both; }
+.chat-bubble-out { animation: slideInRight 0.4s cubic-bezier(.16,1,.3,1) both; }
+.chat-delay-1 { animation-delay: 0.6s; }
+.chat-delay-2 { animation-delay: 1.4s; }
+.chat-delay-3 { animation-delay: 2.0s; }
+.chat-delay-4 { animation-delay: 2.8s; }
+
+.typing-dot {
+  width: 6px; height: 6px; background: #8696a0; border-radius: 50%;
+  display: inline-block; animation: typingDots 1.2s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ── Gradient hero ───────────────────────────────────────── */
 @keyframes gradientShift {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradientShift 8s ease infinite;
-}
+.animate-gradient { background-size: 200% 200%; animation: gradientShift 10s ease infinite; }
 
-/* Fade in up – triggered by .in-view class */
-.fade-up {
-  opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-}
-.fade-up.in-view {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Staggered children */
-.fade-up:nth-child(1) { transition-delay: 0ms; }
-.fade-up:nth-child(2) { transition-delay: 80ms; }
-.fade-up:nth-child(3) { transition-delay: 160ms; }
-.fade-up:nth-child(4) { transition-delay: 240ms; }
-.fade-up:nth-child(5) { transition-delay: 320ms; }
-.fade-up:nth-child(6) { transition-delay: 400ms; }
-.fade-up:nth-child(7) { transition-delay: 480ms; }
-.fade-up:nth-child(8) { transition-delay: 560ms; }
-
-/* Pulse glow on CTA */
+/* ── CTA pulse glow ──────────────────────────────────────── */
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
-  50%       { box-shadow: 0 0 0 12px rgba(59,130,246,0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,.5); }
+  50%       { box-shadow: 0 0 0 10px rgba(59,130,246,0); }
 }
-.animate-pulse-glow {
-  animation: pulseGlow 2.5s ease-in-out infinite;
+.animate-pulse-glow { animation: pulseGlow 2.5s ease-in-out infinite; }
+
+/* ── Shake (error) ───────────────────────────────────────── */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-6px); }
+  40%     { transform: translateX(6px); }
+  60%     { transform: translateX(-4px); }
+  80%     { transform: translateX(4px); }
+}
+
+/* ── Range slider ────────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  height: 6px; border-radius: 999px; outline: none; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #2563eb; border: 3px solid white;
+  box-shadow: 0 1px 4px rgba(37,99,235,.4);
+  cursor: pointer; transition: transform .15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type="range"]::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #2563eb; border: 3px solid white;
+  box-shadow: 0 1px 4px rgba(37,99,235,.4);
+  cursor: pointer;
 }

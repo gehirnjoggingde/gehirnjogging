@@ -1,80 +1,111 @@
 const supabase = require('./supabaseClient');
 
-const CATEGORIES = ['allgemeinwissen', 'geschichte', 'psychologie', 'wissenschaft', 'philosophie'];
+const CATEGORIES = ['allgemeinwissen', 'geschichte', 'psychologie', 'wissenschaft', 'philosophie', 'wirtschaft', 'natur', 'kultur'];
 
 /**
- * Returns today's quiz question.
- * Priority: scheduled_date match → fallback to a random unsent question.
- * Optionally generates a new one via Claude API if DB is empty.
+ * Maps a user's difficulty_level (1-10) to a score range for filtering.
+ * Questions within ±2 of the user's level are accepted.
  */
-async function getTodayQuestion() {
-  const today = new Date().toISOString().split('T')[0];
-
-  // 1. Check for a question scheduled for today
-  const { data: scheduled } = await supabase
-    .from('quiz_questions')
-    .select('*')
-    .eq('scheduled_date', today)
-    .single();
-
-  if (scheduled) return scheduled;
-
-  // 2. Pick a random question that hasn't been used in the last 30 days
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const { data: recentlyUsed } = await supabase
-    .from('user_answers')
-    .select('question_id')
-    .gte('answered_at', thirtyDaysAgo.toISOString());
-
-  const excludeIds = [...new Set((recentlyUsed || []).map(a => a.question_id))];
-
-  let query = supabase.from('quiz_questions').select('*');
-  if (excludeIds.length > 0) {
-    query = query.not('id', 'in', `(${excludeIds.join(',')})`);
-  }
-
-  const { data: candidates } = await query.limit(50);
-
-  if (candidates && candidates.length > 0) {
-    return candidates[Math.floor(Math.random() * candidates.length)];
-  }
-
-  // 3. All questions exhausted – generate a new one if Claude API key is configured
-  if (process.env.CLAUDE_API_KEY) {
-    console.log('[QuizService] Generating new question via Claude API...');
-    const generated = await generateDailyQuiz();
-
-    const { data: saved } = await supabase
-      .from('quiz_questions')
-      .insert(generated)
-      .select('*')
-      .single();
-
-    return saved;
-  }
-
-  // 4. Fallback: use any question at all
-  const { data: any } = await supabase
-    .from('quiz_questions')
-    .select('*')
-    .limit(1)
-    .single();
-
-  return any;
+function difficultyRange(level) {
+  return { min: Math.max(1, level - 2), max: Math.min(10, level + 2) };
 }
 
 /**
- * Calls Claude API to generate a quiz question.
- * Returns a plain object ready to INSERT into quiz_questions.
+ * Returns N questions for a specific user, respecting their preferences.
+ * @param {object} user – must have preferred_categories, difficulty_level, daily_question_count, id
+ * @param {number} count – override count (optional)
  */
-async function generateDailyQuiz() {
-  const category = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+async function getQuestionsForUser(user, count = null) {
+  const questionCount = count ?? user.daily_question_count ?? 1;
+  const categories = user.preferred_categories?.length > 0
+    ? user.preferred_categories
+    : ['allgemeinwissen'];
+  const { min, max } = difficultyRange(user.difficulty_level ?? 5);
 
-  const prompt = `Generiere eine Quiz-Frage zum Thema "${category}" (auf Deutsch).
+  // Get IDs the user already answered
+  const { data: answered } = await supabase
+    .from('user_answers')
+    .select('question_id')
+    .eq('user_id', user.id)
+    .not('user_answer', 'is', null);
 
-Format (nur JSON, keine anderen Zeichen):
+  const answeredIds = (answered || []).map(a => a.question_id);
+
+  // Try to find questions matching preferences
+  let query = supabase
+    .from('quiz_questions')
+    .select('*')
+    .in('category', categories)
+    .gte('difficulty_score', min)
+    .lte('difficulty_score', max)
+    .limit(questionCount * 5); // fetch extras so we can randomise
+
+  if (answeredIds.length > 0) {
+    query = query.not('id', 'in', `(${answeredIds.join(',')})`);
+  }
+
+  const { data: candidates } = await query;
+
+  let pool = candidates || [];
+
+  // Fallback 1: ignore difficulty filter, keep category
+  if (pool.length < questionCount) {
+    let q2 = supabase.from('quiz_questions').select('*').in('category', categories).limit(50);
+    if (answeredIds.length > 0) q2 = q2.not('id', 'in', `(${answeredIds.join(',')})`);
+    const { data: more } = await q2;
+    pool = [...pool, ...(more || [])];
+  }
+
+  // Fallback 2: any question
+  if (pool.length < questionCount) {
+    const { data: any } = await supabase.from('quiz_questions').select('*').limit(50);
+    pool = [...pool, ...(any || [])];
+  }
+
+  if (pool.length === 0) return [];
+
+  // Shuffle + pick N
+  const shuffled = pool.sort(() => Math.random() - 0.5);
+  const unique = [];
+  const seen = new Set();
+  for (const q of shuffled) {
+    if (!seen.has(q.id)) { seen.add(q.id); unique.push(q); }
+    if (unique.length >= questionCount) break;
+  }
+
+  return unique;
+}
+
+/**
+ * Gets today's question for a single user (backwards-compatible).
+ */
+async function getTodayQuestion(user = null) {
+  const today = new Date().toISOString().split('T')[0];
+
+  // Scheduled question takes priority
+  const { data: scheduled } = await supabase
+    .from('quiz_questions').select('*').eq('scheduled_date', today).single();
+  if (scheduled) return scheduled;
+
+  if (user) {
+    const qs = await getQuestionsForUser(user, 1);
+    return qs[0] ?? null;
+  }
+
+  // Generic random fallback
+  const { data } = await supabase.from('quiz_questions').select('*').limit(20);
+  if (!data || data.length === 0) return null;
+  return data[Math.floor(Math.random() * data.length)];
+}
+
+/**
+ * Calls Claude API to auto-generate a quiz question.
+ */
+async function generateDailyQuiz(category = null) {
+  const cat = category || CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+  const prompt = `Generiere eine Quiz-Frage zum Thema "${cat}" (auf Deutsch).
+
+Format (nur JSON):
 {
   "question": "...",
   "answer_a": "...",
@@ -83,11 +114,10 @@ Format (nur JSON, keine anderen Zeichen):
   "answer_d": "...",
   "correct_answer": "a",
   "explanation": "...",
-  "category": "${category}",
-  "difficulty": "medium"
-}
-
-Die Frage soll interessant, lehrreich und mittelschwer sein. Die Erklärung soll 1-2 Sätze sein.`;
+  "category": "${cat}",
+  "difficulty": "medium",
+  "difficulty_score": 5
+}`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -103,18 +133,11 @@ Die Frage soll interessant, lehrreich und mittelschwer sein. Die Erklärung soll
     }),
   });
 
-  if (!response.ok) {
-    throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
-  }
-
+  if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
   const data = await response.json();
-  const text = data.content[0].text.trim();
-
-  // Extract JSON even if there's surrounding whitespace or markdown code fences
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('No JSON found in Claude response');
-
-  return JSON.parse(jsonMatch[0]);
+  const match = data.content[0].text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('No JSON in Claude response');
+  return JSON.parse(match[0]);
 }
 
-module.exports = { getTodayQuestion, generateDailyQuiz };
+module.exports = { getTodayQuestion, getQuestionsForUser, generateDailyQuiz };

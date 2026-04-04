@@ -11,6 +11,7 @@ export default function SignupPage({ mode = 'signup' }) {
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [shake, setShake] = useState(false);
 
   function handleChange(e) {
     setForm(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -27,12 +28,22 @@ export default function SignupPage({ mode = 'signup' }) {
     return e;
   }
 
+  function triggerShake() {
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     const errs = validate();
-    if (Object.keys(errs).length > 0) return setErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      triggerShake();
+      return;
+    }
 
     setLoading(true);
+    setServerError('');
     try {
       let data;
       if (isLogin) {
@@ -48,7 +59,9 @@ export default function SignupPage({ mode = 'signup' }) {
       saveAuth(data.token, data.user);
       navigate(isLogin ? '/dashboard' : '/payment');
     } catch (err) {
-      setServerError(err.response?.data?.error || 'Etwas ist schiefgelaufen.');
+      const msg = err.response?.data?.error || 'Etwas ist schiefgelaufen. Bitte versuche es erneut.';
+      setServerError(msg);
+      triggerShake();
     } finally {
       setLoading(false);
     }
@@ -56,7 +69,6 @@ export default function SignupPage({ mode = 'signup' }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Top bar */}
       <div className="bg-white border-b border-gray-100 h-14 flex items-center px-4">
         <Link to="/" className="flex items-center gap-2 font-bold text-gray-900">
           <img src="/logo.png" alt="" className="h-7 w-7 object-contain" />
@@ -66,7 +78,6 @@ export default function SignupPage({ mode = 'signup' }) {
 
       <div className="flex-1 flex items-center justify-center p-4 py-10">
         <div className="w-full max-w-md">
-          {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">
               {isLogin ? 'Willkommen zurück 👋' : 'Jetzt kostenlos starten'}
@@ -76,43 +87,51 @@ export default function SignupPage({ mode = 'signup' }) {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
+          <div
+            className={`bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8 transition-all ${shake ? 'animate-shake' : ''}`}
+            style={shake ? { animation: 'shake 0.4s ease' } : {}}
+          >
+            {/* Server error banner */}
             {serverError && (
-              <div className="bg-red-50 border border-red-100 text-red-600 rounded-xl px-4 py-3 mb-5 text-sm">
-                {serverError}
+              <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-5">
+                <span className="text-lg flex-shrink-0">⚠️</span>
+                <p className="text-sm font-medium">{serverError}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               {!isLogin && (
                 <div>
                   <label className="label">Dein Name</label>
-                  <input name="name" type="text" className="input" placeholder="Max Mustermann"
-                    value={form.name} onChange={handleChange} autoComplete="name" />
-                  {errors.name && <p className="error-text">{errors.name}</p>}
+                  <input name="name" type="text" className={`input ${errors.name ? 'border-red-400 ring-2 ring-red-100' : ''}`}
+                    placeholder="Max Mustermann" value={form.name} onChange={handleChange} autoComplete="name" />
+                  {errors.name && <p className="error-text">⚠ {errors.name}</p>}
                 </div>
               )}
+
               <div>
                 <label className="label">E-Mail-Adresse</label>
-                <input name="email" type="email" className="input" placeholder="max@beispiel.de"
-                  value={form.email} onChange={handleChange} autoComplete="email" />
-                {errors.email && <p className="error-text">{errors.email}</p>}
+                <input name="email" type="email" className={`input ${errors.email ? 'border-red-400 ring-2 ring-red-100' : ''}`}
+                  placeholder="max@beispiel.de" value={form.email} onChange={handleChange} autoComplete="email" />
+                {errors.email && <p className="error-text">⚠ {errors.email}</p>}
               </div>
+
               {!isLogin && (
                 <div>
                   <label className="label">WhatsApp-Nummer</label>
-                  <input name="phone" type="tel" className="input" placeholder="+49 151 23456789"
-                    value={form.phone} onChange={handleChange} autoComplete="tel" />
-                  <p className="text-xs text-gray-400 mt-1.5">Die Nummer, auf der du WhatsApp nutzt</p>
-                  {errors.phone && <p className="error-text">{errors.phone}</p>}
+                  <input name="phone" type="tel" className={`input ${errors.phone ? 'border-red-400 ring-2 ring-red-100' : ''}`}
+                    placeholder="+49 151 23456789" value={form.phone} onChange={handleChange} autoComplete="tel" />
+                  <p className="text-xs text-gray-400 mt-1.5">Die Nummer auf der du WhatsApp nutzt</p>
+                  {errors.phone && <p className="error-text">⚠ {errors.phone}</p>}
                 </div>
               )}
+
               <div>
                 <label className="label">Passwort</label>
-                <input name="password" type="password" className="input" placeholder="Mindestens 8 Zeichen"
-                  value={form.password} onChange={handleChange}
+                <input name="password" type="password" className={`input ${errors.password ? 'border-red-400 ring-2 ring-red-100' : ''}`}
+                  placeholder="Mindestens 8 Zeichen" value={form.password} onChange={handleChange}
                   autoComplete={isLogin ? 'current-password' : 'new-password'} />
-                {errors.password && <p className="error-text">{errors.password}</p>}
+                {errors.password && <p className="error-text">⚠ {errors.password}</p>}
               </div>
 
               {!isLogin && (
@@ -124,7 +143,12 @@ export default function SignupPage({ mode = 'signup' }) {
               )}
 
               <button type="submit" disabled={loading} className="btn-primary w-full py-3.5 text-base mt-2">
-                {loading ? 'Bitte warten…' : isLogin ? 'Anmelden' : 'Kostenlos registrieren →'}
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Bitte warten…
+                  </span>
+                ) : isLogin ? 'Anmelden' : 'Kostenlos registrieren →'}
               </button>
             </form>
 

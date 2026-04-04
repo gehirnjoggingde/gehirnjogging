@@ -19,11 +19,11 @@ const CATEGORIES = [
 ];
 
 const DIFFICULTY_LABELS = {
-  1: 'Sehr leicht', 2: 'Sehr leicht',
-  3: 'Leicht',      4: 'Leicht',
-  5: 'Mittel',      6: 'Mittel',
-  7: 'Schwer',      8: 'Schwer',
-  9: 'Sehr schwer', 10: 'Sehr schwer',
+  1: 'Sehr leicht',
+  2: 'Leicht',
+  3: 'Mittel',
+  4: 'Schwer',
+  5: 'Sehr schwer',
 };
 
 const QUESTION_LABELS = {
@@ -400,9 +400,9 @@ export default function Dashboard() {
               <SliderInput
                 label="Schwierigkeitsgrad"
                 value={settingsForm.difficulty_level}
-                min={1} max={10}
+                min={1} max={5}
                 onChange={v => setSettingsForm(p => ({ ...p, difficulty_level: v }))}
-                displayValue={`${settingsForm.difficulty_level}/10 · ${DIFFICULTY_LABELS[settingsForm.difficulty_level]}`}
+                displayValue={`${settingsForm.difficulty_level}/5 · ${DIFFICULTY_LABELS[settingsForm.difficulty_level]}`}
               />
             </div>
 

@@ -35,7 +35,7 @@ function AnimatedChat() {
         <div className="chat-bubble-in chat-delay-1 opacity-0 max-w-[92%]">
           <div className="bg-[#202c33] rounded-2xl rounded-tl-sm p-3 text-white text-xs leading-relaxed">
             <p className="font-bold text-cyan-400 text-[11px] mb-1">🧠 Gehirnjogging Quiz</p>
-            <p className="text-gray-400 text-[10px] mb-1.5">🧠 Psychologie</p>
+            <p className="text-gray-400 text-[10px] mb-1.5">📚 Psychologie</p>
             <p className="mb-2 text-[12px] leading-snug font-medium">
               Welches Experiment bewies, dass Gehorsam wichtiger ist als Moral – selbst wenn es Menschen schadet?
             </p>

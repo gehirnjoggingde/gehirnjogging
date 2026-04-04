@@ -36,7 +36,7 @@ export default function Header() {
           to={isLoggedIn ? '/dashboard' : '/'}
           className="flex items-center gap-2.5 select-none"
         >
-          <img src="/logo.png" alt="Gehirnjogging" className="h-8 w-8 object-contain" />
+          <img src="/logo.png" alt="Gehirnjogging" className="h-10 w-10 object-contain" />
           <span className="font-bold text-lg text-navy-900 tracking-tight">
             Gehirn<span className="text-brand-600">jogging</span>
           </span>

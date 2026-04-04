@@ -152,7 +152,7 @@ export default function Dashboard() {
   }
 
   function handleCopyReferral() {
-    const link = `https://gehirnjoggingclub.de/signup?ref=${user?.id?.slice(0, 8) || 'friend'}`;
+    const link = `https://gehirnjoggingclub.de/`;
 
     function onSuccess() {
       setCopied(true);

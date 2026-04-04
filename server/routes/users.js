@@ -31,15 +31,12 @@ router.put('/settings', async (req, res) => {
   if (quiz_time !== undefined) {
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(quiz_time))
       return res.status(400).json({ error: 'Ungültiges Zeitformat. Erwartet HH:MM' });
-    const [h] = quiz_time.split(':').map(Number);
-    if (h < 9 || h > 22)
-      return res.status(400).json({ error: 'Quiz-Zeit muss zwischen 09:00 und 22:00 liegen' });
     updates.quiz_time = quiz_time;
   }
 
   if (is_paused !== undefined) {
+    // Only toggle is_paused – subscription_status is managed exclusively by Stripe webhooks
     updates.is_paused = Boolean(is_paused);
-    updates.subscription_status = Boolean(is_paused) ? 'paused' : 'active';
   }
 
   if (daily_question_count !== undefined) {

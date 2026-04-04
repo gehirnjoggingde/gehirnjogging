@@ -8,11 +8,27 @@ cron.schedule('*/5 * * * *', async () => {
   await runQuizDispatch();
 });
 
-async function runQuizDispatch() {
+/**
+ * Get current time in Europe/Berlin as total minutes since midnight.
+ * Handles both CET (UTC+1) and CEST (UTC+2) automatically.
+ */
+function getBerlinMinutes() {
   const now = new Date();
-  const currentHour   = now.getUTCHours();
-  const currentMinute = now.getUTCMinutes();
-  console.log(`[Cron] Dispatch at ${pad(currentHour)}:${pad(currentMinute)} UTC`);
+  const berlinStr = now.toLocaleString('en-US', {
+    timeZone: 'Europe/Berlin',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const [h, m] = berlinStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+async function runQuizDispatch() {
+  const berlinMinutes = getBerlinMinutes();
+  const bh = Math.floor(berlinMinutes / 60);
+  const bm = berlinMinutes % 60;
+  console.log(`[Cron] Dispatch at ${pad(bh)}:${pad(bm)} Berlin time`);
 
   const { data: users, error } = await supabase
     .from('users')
@@ -23,11 +39,11 @@ async function runQuizDispatch() {
   if (error) { console.error('[Cron] Fetch error:', error); return; }
   if (!users?.length) { console.log('[Cron] No active users'); return; }
 
-  // Filter by time window (±4 min)
+  // Filter by time window (±4 min) – quiz_time is stored as Berlin local time
   const targets = users.filter(u => {
     if (!u.quiz_time) return false;
     const [hh, mm] = u.quiz_time.split(':').map(Number);
-    return Math.abs((hh * 60 + mm) - (currentHour * 60 + currentMinute)) <= 4;
+    return Math.abs((hh * 60 + mm) - berlinMinutes) <= 4;
   });
 
   if (!targets.length) { console.log('[Cron] No users in this window'); return; }

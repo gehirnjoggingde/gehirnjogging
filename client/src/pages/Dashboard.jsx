@@ -31,39 +31,42 @@ const QUESTION_LABELS = {
 };
 
 /* ── Subcomponents ───────────────────────────────────────── */
-function StatCard({ value, label, color = 'text-brand-600' }) {
+function StatBadge({ value, label, icon }) {
   return (
-    <div className="bg-white/10 backdrop-blur rounded-2xl p-4 text-center">
-      <div className={`text-3xl font-extrabold ${color}`}>{value}</div>
-      <div className="text-xs text-white/60 mt-1">{label}</div>
+    <div className="flex flex-col items-center bg-white/10 backdrop-blur rounded-2xl px-4 py-3 flex-1 min-w-0">
+      <span className="text-lg mb-0.5">{icon}</span>
+      <span className="text-xl font-extrabold text-white leading-none">{value}</span>
+      <span className="text-xs text-white/55 mt-1 text-center leading-tight">{label}</span>
     </div>
   );
 }
 
 function SliderInput({ label, value, min, max, onChange, displayValue }) {
+  const pct = ((value - min) / (max - min)) * 100;
   return (
     <div>
-      <div className="flex justify-between items-center mb-3">
+      <div className="flex justify-between items-center mb-2.5">
         <label className="text-sm font-semibold text-gray-700">{label}</label>
-        <span className="text-sm font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">
+        <span className="text-xs font-bold text-brand-600 bg-brand-50 border border-brand-100 px-2.5 py-1 rounded-full">
           {displayValue}
         </span>
       </div>
-      <div className="relative">
-        <input
-          type="range" min={min} max={max} value={value}
-          onChange={e => onChange(parseInt(e.target.value))}
-          className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-brand-600"
-          style={{
-            background: `linear-gradient(to right, #2563eb ${((value - min) / (max - min)) * 100}%, #e5e7eb ${((value - min) / (max - min)) * 100}%)`
-          }}
-        />
-        <div className="flex justify-between text-xs text-gray-400 mt-1.5">
-          <span>{min}</span>
-          <span>{max}</span>
-        </div>
+      <input
+        type="range" min={min} max={max} value={value}
+        onChange={e => onChange(parseInt(e.target.value))}
+        className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+        style={{ background: `linear-gradient(to right, #2563eb ${pct}%, #e5e7eb ${pct}%)` }}
+      />
+      <div className="flex justify-between text-xs text-gray-300 mt-1">
+        <span>{min}</span><span>{max}</span>
       </div>
     </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{children}</p>
   );
 }
 
@@ -73,13 +76,12 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [toast, setToast] = useState('');
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
   const isPaid = searchParams.get('session');
 
-  // Local settings state (for the settings tab)
   const [settingsForm, setSettingsForm] = useState({
     preferred_categories: ['allgemeinwissen'],
     daily_question_count: 1,
@@ -110,7 +112,7 @@ export default function Dashboard() {
     setSettingsForm(prev => {
       const cats = prev.preferred_categories;
       if (cats.includes(id)) {
-        if (cats.length === 1) return prev; // keep at least one
+        if (cats.length === 1) return prev;
         return { ...prev, preferred_categories: cats.filter(c => c !== id) };
       }
       return { ...prev, preferred_categories: [...cats, id] };
@@ -149,25 +151,30 @@ export default function Dashboard() {
     } catch { showToast('Fehler'); }
   }
 
+  function handleCopyReferral() {
+    const link = `https://gehirnjoggingclub.de/signup?ref=${user?.id?.slice(0, 8) || 'friend'}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }).catch(() => {
+      showToast('Link: ' + link);
+    });
+  }
+
   if (loading) return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-3 border-brand-200 border-t-brand-600 rounded-full animate-spin" style={{ borderWidth: 3 }} />
-          <p className="text-gray-400 text-sm">Lädt dein Dashboard…</p>
+          <div className="w-10 h-10 rounded-full border-[3px] border-brand-100 border-t-brand-600 animate-spin" />
+          <p className="text-sm text-gray-400">Lädt dein Dashboard…</p>
         </div>
       </div>
     </div>
   );
 
   const initials = user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
-
-  const TABS = [
-    { id: 'overview', label: 'Übersicht', icon: '🏠' },
-    { id: 'settings', label: 'Einstellungen', icon: '⚙️' },
-    { id: 'subscription', label: 'Abonnement', icon: '💳' },
-  ];
+  const firstName = user?.name?.split(' ')[0] || 'du';
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -175,7 +182,7 @@ export default function Dashboard() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-5 py-2.5 rounded-full text-sm shadow-xl z-50 whitespace-nowrap animate-fade-in">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-5 py-2.5 rounded-full text-sm shadow-xl z-50 whitespace-nowrap">
           {toast}
         </div>
       )}
@@ -189,29 +196,30 @@ export default function Dashboard() {
         />
       )}
 
-      {/* ── Hero Header ───────────────────────────────────── */}
-      <div className="bg-gradient-to-br from-navy-950 via-navy-900 to-brand-900 text-white">
-        <div className="max-w-2xl mx-auto px-4 pt-8 pb-6">
+      {/* ── Hero ──────────────────────────────────────────── */}
+      <div className="bg-gradient-to-br from-navy-950 via-navy-900 to-brand-900">
+        <div className="max-w-5xl mx-auto px-4 pt-8 pb-8">
+
           {isPaid && (
-            <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
+            <div className="bg-white/10 border border-white/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
               <span className="text-2xl">🎉</span>
               <div>
-                <p className="font-bold">Willkommen bei Gehirnjogging!</p>
-                <p className="text-sm text-white/70">Dein erstes Quiz kommt um {user?.quiz_time} Uhr auf WhatsApp.</p>
+                <p className="font-bold text-white">Willkommen bei Gehirnjogging!</p>
+                <p className="text-sm text-white/65">Dein erstes Quiz kommt um {user?.quiz_time} Uhr auf WhatsApp.</p>
               </div>
             </div>
           )}
 
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center text-xl font-bold shadow-lg flex-shrink-0">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center text-xl font-bold text-white shadow-lg flex-shrink-0 select-none">
               {initials}
             </div>
             <div>
-              <p className="text-white/60 text-sm">Willkommen zurück</p>
-              <h1 className="text-2xl font-extrabold">
-                {user?.name?.split(' ')[0]} 👋
+              <p className="text-white/50 text-xs font-medium tracking-wide">Willkommen zurück</p>
+              <h1 className="text-2xl font-extrabold text-white leading-tight">
+                {firstName} 👋
               </h1>
-              <p className="text-white/60 text-xs mt-0.5">
+              <p className="text-white/50 text-xs mt-0.5">
                 {user?.is_paused
                   ? '⏸ Quiz pausiert'
                   : `Nächstes Quiz um ${user?.quiz_time} Uhr`}
@@ -219,120 +227,113 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Stats row */}
           {stats && (
-            <div className="grid grid-cols-3 gap-3">
-              <StatCard value={`${stats.streak}🔥`} label="Streak" color="text-orange-300" />
-              <StatCard value={stats.correct} label="Richtig" color="text-green-300" />
-              <StatCard value={`${stats.accuracy}%`} label="Genauigkeit" color="text-cyan-300" />
+            <div className="flex gap-3">
+              <StatBadge icon="🔥" value={stats.streak} label="Tage Streak" />
+              <StatBadge icon="✅" value={stats.correct} label="Richtig" />
+              <StatBadge icon="🎯" value={`${stats.accuracy}%`} label="Genauigkeit" />
             </div>
           )}
         </div>
-
-        {/* Tab bar */}
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="flex border-b border-white/10">
-            {TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-all -mb-px ${
-                  activeTab === tab.id
-                    ? 'border-brand-400 text-white'
-                    : 'border-transparent text-white/50 hover:text-white/80'
-                }`}
-              >
-                <span className="hidden sm:inline">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {/* ── Tab Content ───────────────────────────────────── */}
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6">
+      {/* ── Main Content ──────────────────────────────────── */}
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 items-start">
 
-        {/* OVERVIEW TAB */}
-        {activeTab === 'overview' && (
+          {/* ── LEFT COLUMN ─────────────────────────────── */}
           <div className="space-y-4">
-            {/* Next quiz card */}
-            <div className="card">
+
+            {/* Quiz Time */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <SectionLabel>Quiz-Uhrzeit</SectionLabel>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Quiz-Uhrzeit</p>
-                  <p className="text-2xl font-extrabold text-gray-900">{user?.quiz_time} Uhr</p>
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <p className="text-3xl font-extrabold text-gray-900 leading-none">{user?.quiz_time} Uhr</p>
+                  <p className="text-sm text-gray-400 mt-1.5">
                     {user?.daily_question_count > 1
-                      ? `${user.daily_question_count} Fragen täglich`
-                      : '1 Frage täglich'}
+                      ? `${user.daily_question_count} Fragen täglich · täglich auf WhatsApp`
+                      : '1 Frage täglich · auf WhatsApp'}
                   </p>
                 </div>
-                <button onClick={() => setShowTimePicker(true)} className="btn-secondary text-sm py-2 px-4">
+                <button
+                  onClick={() => setShowTimePicker(true)}
+                  className="btn-secondary text-sm py-2 px-4 flex-shrink-0"
+                >
                   Ändern
                 </button>
               </div>
             </div>
 
-            {/* Quick actions */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Freunde einladen */}
+            <div className="bg-gradient-to-br from-brand-600 to-brand-800 rounded-2xl p-5 text-white shadow-glow">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1">Freunde einladen</p>
+                  <h3 className="text-lg font-extrabold leading-snug mb-1">
+                    Teile Gehirnjogging 🧠
+                  </h3>
+                  <p className="text-sm text-white/70 leading-relaxed">
+                    Schick deinen Freunden deinen persönlichen Link und macht gemeinsam schlauer.
+                  </p>
+                </div>
+                <span className="text-4xl select-none flex-shrink-0">🎁</span>
+              </div>
               <button
-                onClick={handlePauseToggle}
-                className={`py-4 rounded-xl font-semibold text-sm transition-all active:scale-[.97] flex items-center justify-center gap-2 ${
-                  user?.is_paused
-                    ? 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm'
-                    : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'
+                onClick={handleCopyReferral}
+                className={`mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[.97] ${
+                  copied
+                    ? 'bg-green-500 text-white'
+                    : 'bg-white/15 hover:bg-white/25 text-white border border-white/20'
                 }`}
               >
-                {user?.is_paused ? '▶ Fortsetzen' : '⏸ Pausieren'}
-              </button>
-              <button
-                onClick={() => setActiveTab('settings')}
-                className="py-4 rounded-xl font-semibold text-sm bg-white border border-gray-200 text-gray-700 hover:border-gray-300 transition-all active:scale-[.97] flex items-center justify-center gap-2"
-              >
-                ⚙️ Einstellungen
+                {copied ? '✓ Link kopiert!' : '🔗 Einladungslink kopieren'}
               </button>
             </div>
 
-            {/* Category preview */}
-            <div className="card">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Deine Kategorien</p>
+            {/* How to answer */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <SectionLabel>So funktioniert's</SectionLabel>
+              <div className="space-y-3">
+                {[
+                  { step: '1', text: 'Du bekommst täglich eine Frage per WhatsApp.' },
+                  { step: '2', text: 'Antworte mit 1, 2, 3 oder 4 auf die Antwortmöglichkeit.' },
+                  { step: '3', text: 'Du erhältst sofort Feedback mit Erklärung.' },
+                ].map(({ step, text }) => (
+                  <div key={step} className="flex items-start gap-3">
+                    <span className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {step}
+                    </span>
+                    <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Active Categories Preview (mobile: full, desktop: hidden since settings are always visible) */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5 lg:hidden">
+              <SectionLabel>Aktive Kategorien</SectionLabel>
               <div className="flex flex-wrap gap-2">
                 {(user?.preferred_categories || ['allgemeinwissen']).map(cat => {
                   const c = CATEGORIES.find(c => c.id === cat);
                   return c ? (
-                    <span key={cat} className="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+                    <span key={cat} className="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-brand-100">
                       {c.icon} {c.label}
                     </span>
                   ) : null;
                 })}
-                <button onClick={() => setActiveTab('settings')} className="text-xs text-gray-400 hover:text-brand-600 font-medium px-2">
-                  + Bearbeiten
-                </button>
               </div>
             </div>
 
-            {/* How to answer */}
-            <div className="rounded-2xl bg-gradient-to-br from-brand-50 to-blue-50 border border-brand-100 p-5">
-              <h3 className="font-bold text-brand-900 mb-2 flex items-center gap-2">
-                📲 So antwortest du
-              </h3>
-              <p className="text-sm text-brand-700 leading-relaxed">
-                Wenn du dein Quiz auf WhatsApp bekommst, antworte einfach mit{' '}
-                <strong>1</strong>, <strong>2</strong>, <strong>3</strong> oder <strong>4</strong>.
-                Du bekommst sofort Feedback – inklusive Erklärung!
-              </p>
-            </div>
           </div>
-        )}
 
-        {/* SETTINGS TAB */}
-        {activeTab === 'settings' && (
-          <div className="space-y-5">
+          {/* ── RIGHT COLUMN (Settings) ──────────────────── */}
+          <div className="space-y-4">
+
             {/* Categories */}
-            <div className="card">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Kategorien</p>
-              <p className="text-sm text-gray-500 mb-4">Wähle die Themen die dich interessieren. Mehrere möglich.</p>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <SectionLabel>Themenkategorien</SectionLabel>
+              <p className="text-xs text-gray-400 mb-3 -mt-1">Mehrere wählbar – mindestens eine.</p>
               <div className="grid grid-cols-2 gap-2">
                 {CATEGORIES.map(cat => {
                   const active = settingsForm.preferred_categories.includes(cat.id);
@@ -340,15 +341,21 @@ export default function Dashboard() {
                     <button
                       key={cat.id}
                       onClick={() => toggleCategory(cat.id)}
-                      className={`flex items-center gap-2.5 p-3 rounded-xl border-2 text-sm font-medium transition-all active:scale-[.97] text-left ${
+                      className={`flex items-center gap-2 p-2.5 rounded-xl border-2 text-sm font-medium transition-all active:scale-[.97] text-left ${
                         active
                           ? 'border-brand-500 bg-brand-50 text-brand-700'
-                          : 'border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200'
+                          : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-gray-100'
                       }`}
                     >
-                      <span className="text-xl flex-shrink-0">{cat.icon}</span>
-                      <span className="leading-tight">{cat.label}</span>
-                      {active && <span className="ml-auto text-brand-500 flex-shrink-0">✓</span>}
+                      <span className="text-base flex-shrink-0">{cat.icon}</span>
+                      <span className="text-xs leading-tight truncate">{cat.label}</span>
+                      {active && (
+                        <span className="ml-auto w-4 h-4 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 8">
+                            <path d="M1 4l2.5 2.5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -356,77 +363,81 @@ export default function Dashboard() {
             </div>
 
             {/* Sliders */}
-            <div className="card space-y-6">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Quiz-Intensität</p>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5 space-y-5">
+              <SectionLabel>Quiz-Intensität</SectionLabel>
 
               <SliderInput
                 label="Fragen pro Tag"
                 value={settingsForm.daily_question_count}
                 min={1} max={5}
                 onChange={v => setSettingsForm(p => ({ ...p, daily_question_count: v }))}
-                displayValue={`${settingsForm.daily_question_count} – ${QUESTION_LABELS[settingsForm.daily_question_count]}`}
+                displayValue={`${settingsForm.daily_question_count} · ${QUESTION_LABELS[settingsForm.daily_question_count]}`}
               />
+
+              <div className="border-t border-gray-50" />
 
               <SliderInput
                 label="Schwierigkeitsgrad"
                 value={settingsForm.difficulty_level}
                 min={1} max={10}
                 onChange={v => setSettingsForm(p => ({ ...p, difficulty_level: v }))}
-                displayValue={`${settingsForm.difficulty_level}/10 – ${DIFFICULTY_LABELS[settingsForm.difficulty_level]}`}
+                displayValue={`${settingsForm.difficulty_level}/10 · ${DIFFICULTY_LABELS[settingsForm.difficulty_level]}`}
               />
             </div>
 
-            {/* Quiz time */}
-            <div className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Quiz-Uhrzeit</p>
-                  <p className="text-lg font-bold text-gray-900">{user?.quiz_time} Uhr</p>
-                </div>
-                <button onClick={() => setShowTimePicker(true)} className="btn-secondary text-sm py-2 px-4">
-                  Ändern
-                </button>
-              </div>
-            </div>
-
             {/* Save */}
-            <button onClick={saveSettings} disabled={saving} className="btn-primary w-full py-4 text-base">
-              {saving ? 'Wird gespeichert…' : 'Einstellungen speichern'}
+            <button
+              onClick={saveSettings}
+              disabled={saving}
+              className="btn-primary w-full py-3.5 text-sm"
+            >
+              {saving ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Wird gespeichert…
+                </span>
+              ) : 'Einstellungen speichern'}
             </button>
-          </div>
-        )}
 
-        {/* SUBSCRIPTION TAB */}
-        {activeTab === 'subscription' && (
-          <div className="space-y-4">
-            <div className="card">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Abonnement</p>
+            {/* Subscription */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <SectionLabel>Abonnement</SectionLabel>
               <div className="flex items-center gap-2 mb-4">
-                <span className={`w-3 h-3 rounded-full ${
+                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                   user?.subscription_status === 'active' ? 'bg-green-500' :
-                  user?.subscription_status === 'paused' ? 'bg-yellow-400' : 'bg-red-400'
+                  user?.subscription_status === 'paused' ? 'bg-amber-400' : 'bg-red-400'
                 }`} />
-                <span className="font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-gray-800">
                   {user?.subscription_status === 'active' ? 'Aktiv' :
                    user?.subscription_status === 'paused' ? 'Pausiert' : 'Inaktiv'}
                 </span>
                 {user?.subscription_status === 'active' && (
-                  <span className="text-gray-400 text-sm">· 2,99 €/Monat</span>
+                  <span className="text-xs text-gray-400">· 2,99 €/Monat</span>
                 )}
               </div>
-              <Link to="/settings" className="text-sm text-brand-600 font-semibold hover:underline">
-                Vollständige Einstellungen & Kündigung →
-              </Link>
+
+              <div className="space-y-2">
+                <button
+                  onClick={handlePauseToggle}
+                  className={`w-full py-2.5 rounded-xl text-sm font-semibold border transition-all active:scale-[.97] ${
+                    user?.is_paused
+                      ? 'bg-brand-600 text-white border-brand-600 hover:bg-brand-700'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {user?.is_paused ? '▶ Quiz fortsetzen' : '⏸ Quiz pausieren'}
+                </button>
+                <Link
+                  to="/settings"
+                  className="flex items-center justify-center gap-1 w-full py-2 text-sm text-gray-400 hover:text-brand-600 font-medium transition-colors"
+                >
+                  Kündigen & weitere Optionen →
+                </Link>
+              </div>
             </div>
 
-            <div className="card bg-brand-50 border-brand-100">
-              <h3 className="font-bold text-brand-900 mb-2">💡 Tipp</h3>
-              <p className="text-sm text-brand-700">
-                Du kannst dein Quiz jederzeit pausieren ohne zu kündigen – zum Beispiel im Urlaub.
-              </p>
-            </div>
           </div>
-        )}
+        </div>
       </main>
 
       <Footer />

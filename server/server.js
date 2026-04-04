@@ -12,6 +12,7 @@ const webhookRoutes = require('./routes/webhook');
 
 // Start cron jobs
 require('./cron/dailyQuizCron');
+require('./cron/weeklyScoreCron');
 
 const app = express();
 const PORT = process.env.PORT || 3001;

@@ -20,33 +20,45 @@ async function getQuestionsForUser(user, count = null) {
   const categories = user.preferred_categories?.length > 0
     ? user.preferred_categories
     : ['allgemeinwissen'];
-  const { min, max } = difficultyRange(user.difficulty_level ?? 5);
+  const targetLevel = user.difficulty_level ?? 5;
 
-  // Get IDs the user already answered
-  const { data: answered } = await supabase
+  // Exclude ALL questions ever sent to this user (answered OR pending)
+  // This prevents any question from being sent twice
+  const { data: everSent } = await supabase
     .from('user_answers')
     .select('question_id')
-    .eq('user_id', user.id)
-    .not('user_answer', 'is', null);
+    .eq('user_id', user.id);
 
-  const answeredIds = (answered || []).map(a => a.question_id);
+  const excludeIds = (everSent || []).map(a => a.question_id);
 
-  // Try to find questions matching preferences
-  let query = supabase
-    .from('quiz_questions')
-    .select('*')
-    .in('category', categories)
-    .gte('difficulty_score', min)
-    .lte('difficulty_score', max)
-    .limit(questionCount * 5); // fetch extras so we can randomise
-
-  if (answeredIds.length > 0) {
-    query = query.not('id', 'in', `(${answeredIds.join(',')})`);
+  function buildQuery(catFilter, minDiff, maxDiff) {
+    let q = supabase
+      .from('quiz_questions')
+      .select('*')
+      .limit(questionCount * 8);
+    if (catFilter) q = q.in('category', catFilter);
+    if (minDiff !== null) q = q.gte('difficulty_score', minDiff);
+    if (maxDiff !== null) q = q.lte('difficulty_score', maxDiff);
+    if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`);
+    return q;
   }
 
-  const { data: candidates } = await query;
+  // Attempt order: exact level → ±1 → ±2 → category only → any question
+  const attempts = [
+    () => buildQuery(categories, targetLevel, targetLevel),
+    () => buildQuery(categories, targetLevel - 1, targetLevel + 1),
+    () => buildQuery(categories, targetLevel - 2, targetLevel + 2),
+    () => buildQuery(categories, null, null),
+    () => buildQuery(null, null, null),
+  ];
 
-  let pool = candidates || [];
+  let pool = [];
+  for (const attempt of attempts) {
+    if (pool.length >= questionCount) break;
+    const { data } = await attempt();
+    const fresh = (data || []).filter(q => !pool.some(p => p.id === q.id));
+    pool = [...pool, ...fresh];
+  }
 
   // Fallback 1: ignore difficulty filter, keep category
   if (pool.length < questionCount) {

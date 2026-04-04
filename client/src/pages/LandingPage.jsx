@@ -155,7 +155,7 @@ export default function LandingPage() {
           <Reveal className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Drei Schritte. Das war's.</h2>
             {/* One-liner on desktop */}
-            <p className="text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
+            <p className="text-gray-500">
               Kein Schnickschnack. Einfach anmelden und täglich klüger werden.
             </p>
           </Reveal>

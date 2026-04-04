@@ -20,11 +20,9 @@ const CATEGORIES = [
 ];
 
 const DIFFICULTY_DESCRIPTIONS = {
-  1: 'sehr leicht – Allgemeinwissen, das jeder kennt, grundlegende Fakten',
-  2: 'leicht – etwas Vorwissen nötig, aber leicht zu erraten',
-  3: 'mittel – erfordert solides Allgemeinwissen oder Interesse am Thema',
-  4: 'schwer – detailliertes Wissen, nicht offensichtlich',
-  5: 'sehr schwer – Expertenwissen, überraschende oder unbekannte Fakten',
+  1: 'leicht – Grundwissen, das die meisten kennen, klare Fakten',
+  2: 'mittel – erfordert solides Allgemeinwissen oder Interesse am Thema',
+  3: 'schwer – detailliertes Wissen, überraschende oder unbekannte Fakten, Expertenniveau',
 };
 
 const CATEGORY_CONTEXT = {
@@ -48,7 +46,7 @@ async function callClaude(prompt) {
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4000,
+      max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -57,46 +55,36 @@ async function callClaude(prompt) {
     throw new Error(`Claude API ${response.status}: ${err}`);
   }
   const data = await response.json();
-  return data.content[0].text;
+  const text = data.content[0].text;
+  return text;
 }
 
 async function generateBatch(category, difficulty, batchNum) {
-  const prompt = `Generiere genau 25 einzigartige Quiz-Fragen auf Deutsch zum Thema "${category}".
+  const prompt = `Du bist ein Quiz-Generator. Erstelle genau 25 Quizfragen auf Deutsch.
 
-Kontext: ${CATEGORY_CONTEXT[category]}
-Schwierigkeitsgrad: ${difficulty}/5 (${DIFFICULTY_DESCRIPTIONS[difficulty]})
+Thema: ${category} (${CATEGORY_CONTEXT[category]})
+Schwierigkeit: ${difficulty}/5 – ${DIFFICULTY_DESCRIPTIONS[difficulty]}
+Batch: ${batchNum} (Fragen müssen einzigartig sein)
 
-WICHTIGE REGELN:
-- Alle Fragen müssen faktisch 100% korrekt sein
-- Keine Duplikate innerhalb dieser Batch
-- 4 Antwortmöglichkeiten, genau eine ist richtig
-- Die falschen Antworten müssen plausibel klingen, nicht offensichtlich falsch
-- explanation muss 2-4 Sätze lang sein und interessante Hintergründe erklären
-- Fragen sollen interessant und lehrreich sein, nicht trivial
-- Fragen sollen vielfältig sein – verschiedene Aspekte des Themas abdecken
-- Batchnummer ${batchNum} – stelle sicher dass die Fragen sich von anderen Batches unterscheiden
+Regeln:
+- Fakten 100% korrekt
+- 4 Antworten, genau eine richtig
+- Falsche Antworten plausibel, nicht offensichtlich
+- explanation: 2-3 informative Sätze mit Hintergrundwissen
+- Vielfältige Aspekte des Themas abdecken
 
-Antworte NUR mit einem JSON-Array ohne jeglichen Text davor oder danach:
-[
-  {
-    "question": "...",
-    "answer_a": "...",
-    "answer_b": "...",
-    "answer_c": "...",
-    "answer_d": "...",
-    "correct_answer": "a",
-    "explanation": "...",
-    "category": "${category}",
-    "difficulty_score": ${difficulty}
-  },
-  ...
-]`;
+Gib NUR das JSON-Array aus, kein Text davor oder danach, keine Markdown-Codeblöcke:
+
+[{"question":"...","answer_a":"...","answer_b":"...","answer_c":"...","answer_d":"...","correct_answer":"a","explanation":"...","category":"${category}","difficulty_score":${difficulty}},...]`;
 
   const text = await callClaude(prompt);
 
   // Extract JSON array
   const match = text.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error(`No JSON array found in response for ${category} d${difficulty}`);
+  if (!match) {
+    console.error('\n--- RAW RESPONSE ---\n', text.slice(0, 500), '\n---');
+    throw new Error(`No JSON array found in response for ${category} d${difficulty}`);
+  }
 
   const questions = JSON.parse(match[0]);
   return questions;
@@ -120,7 +108,7 @@ async function insertQuestions(questions) {
     explanation: q.explanation.trim(),
     category: q.category,
     difficulty_score: q.difficulty_score,
-    difficulty: ['', 'sehr_leicht', 'leicht', 'mittel', 'schwer', 'sehr_schwer'][q.difficulty_score] || 'mittel',
+    difficulty: ['', 'leicht', 'mittel', 'schwer'][q.difficulty_score] || 'mittel',
   }));
 
   const { error } = await supabase.from('quiz_questions').insert(rows);
@@ -133,7 +121,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 async function main() {
   console.log('🧠 Gehirnjogging Question Generator');
   console.log('=====================================');
-  console.log(`Generating questions for ${CATEGORIES.length} categories × 5 difficulties × 25 = ~1000 questions\n`);
+  console.log(`Generating questions for ${CATEGORIES.length} categories × 3 difficulties × 25 = ~600 questions\n`);
 
   if (!process.env.CLAUDE_API_KEY) {
     console.error('❌ CLAUDE_API_KEY not set in .env');
@@ -148,7 +136,7 @@ async function main() {
   let totalErrors = 0;
 
   for (const category of CATEGORIES) {
-    for (let difficulty = 1; difficulty <= 5; difficulty++) {
+    for (let difficulty = 1; difficulty <= 3; difficulty++) {
       const label = `${category} (Schwierigkeit ${difficulty}/5)`;
       process.stdout.write(`⏳ Generating: ${label} ... `);
 

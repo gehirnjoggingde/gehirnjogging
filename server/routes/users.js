@@ -48,8 +48,8 @@ router.put('/settings', async (req, res) => {
 
   if (difficulty_level !== undefined) {
     const level = parseInt(difficulty_level);
-    if (level < 1 || level > 5)
-      return res.status(400).json({ error: 'Schwierigkeitsgrad muss zwischen 1 und 5 liegen' });
+    if (level < 1 || level > 3)
+      return res.status(400).json({ error: 'Schwierigkeitsgrad muss zwischen 1 und 3 liegen' });
     updates.difficulty_level = level;
   }
 

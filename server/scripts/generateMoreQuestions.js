@@ -1,11 +1,11 @@
 /**
- * Generates ~3000 MORE quiz questions via Claude API.
+ * Generates ~5000 MORE quiz questions via Claude API.
  * Runs AFTER generateQuestions.js – automatically skips all existing questions.
  * Uses sub-topic rotation to guarantee variety across batches.
  *
  * Run with: node -r dotenv/config scripts/generateMoreQuestions.js
  *
- * 8 categories × 3 difficulties × 5 sub-topic rounds × 25 questions = 3000
+ * 8 categories × 3 difficulties × 9 sub-topic rounds × 25 questions = ~5400
  */
 
 require('dotenv').config();
@@ -22,63 +22,95 @@ const DIFFICULTY_DESCRIPTIONS = {
   3: 'schwer – detailliertes Wissen, überraschende Fakten, Expertenniveau',
 };
 
-// 5 different sub-topic angles per category to guarantee variety
+// 9 different sub-topic angles per category – guarantees variety across all batches
 const SUBTOPICS = {
   allgemeinwissen: [
-    'Geografie, Länder, Hauptstädte, Weltrekorde und internationale Organisationen',
-    'Berühmte Persönlichkeiten, Erfinder, Entdecker und Nobelpreisträger',
-    'Sport, Olympische Spiele, Weltmeisterschaften und sportliche Rekorde',
-    'Sprache, Redewendungen, Etymologie und linguistische Kuriositäten',
-    'Alltag, Lebensmittel, Traditionen, Feiertage und Popkultur weltweit',
+    'Geografie: Länder, Hauptstädte, Flüsse, Gebirge und geografische Rekorde',
+    'Berühmte Persönlichkeiten: Erfinder, Entdecker, Nobelpreisträger und Pioniere',
+    'Sport: Olympische Spiele, Weltmeisterschaften, Rekorde und Sportgeschichte',
+    'Sprache, Etymologie, Redewendungen und linguistische Kuriositäten',
+    'Essen & Trinken: Lebensmittel, Küchen der Welt, Ursprünge und Rekorde',
+    'Technik & Alltagsgegenstände: Erfindungen, wie Dinge funktionieren',
+    'Tiere & Natur im Alltag: Haustiere, häufige Tiere, Naturphänomene',
+    'Zahlen & Fakten: Weltrekorde, Statistiken, erstaunliche Zahlen',
+    'Internationale Organisationen, Flaggen, Symbole und Abkommen',
   ],
   psychologie: [
-    'Klassische Experimente: Milgram, Stanford, Asch, Pavlov und ihre Erkenntnisse',
-    'Kognitive Verzerrungen, Denkfehler und unbewusste Entscheidungsmuster',
-    'Persönlichkeitstheorien, Persönlichkeitsstörungen und Charaktermodelle',
-    'Entwicklungspsychologie, Kindheit, Bindungstheorie und Lerntheorien',
-    'Sozialpsychologie, Gruppenverhalten, Konformität und soziale Einflüsse',
+    'Klassische Experimente: Milgram, Stanford, Asch, Hawthorne und ihre Erkenntnisse',
+    'Kognitive Verzerrungen Teil 1: Bestätigungsfehler, Dunning-Kruger, Ankereffekt',
+    'Kognitive Verzerrungen Teil 2: Survivorship Bias, IKEA-Effekt, Halo-Effekt',
+    'Persönlichkeitstheorien: Big Five, MBTI, Freud, Jung und Adler',
+    'Entwicklungspsychologie: Piaget, Erikson, Bindungstheorie und Kindheitsphasen',
+    'Sozialpsychologie: Konformität, Gehorsam, Gruppendynamik und soziale Rollen',
+    'Klinische Psychologie: Störungsbilder, Therapieformen und Diagnosekriterien',
+    'Wahrnehmung, Gedächtnis, Aufmerksamkeit und neurowissenschaftliche Grundlagen',
+    'Motivation, Emotionen, Glücksforschung und positive Psychologie',
   ],
   geschichte: [
-    'Antike Hochkulturen: Ägypten, Griechenland, Rom, Mesopotamien und China',
-    'Mittelalter, Kreuzzüge, Pest, Feudalsystem und europäische Königreiche',
-    'Neuzeit: Entdeckungen, Reformation, Absolutismus und Revolutionen',
-    'Weltkriege, Kalter Krieg, Holocaust und politische Umbrüche des 20. Jahrhunderts',
-    'Deutsche Geschichte, Weimarer Republik, DDR, Wiedervereinigung und Nachkriegszeit',
+    'Antike: Ägypten, Mesopotamien, Griechenland und das Römische Reich',
+    'Mittelalter: Kreuzzüge, Pest, Feudalismus und Kirche',
+    'Entdeckungszeitalter: Kolumbus, Magellan, Kolonialismus und Handelsrouten',
+    'Revolutionen: Französisch, Amerikanisch, Industriell und ihre Folgen',
+    'Erster Weltkrieg: Ursachen, Schlachten, Folgen und Versailler Vertrag',
+    'Zweiter Weltkrieg: Hitler, Holocaust, Schlachten und Kriegsende',
+    'Kalter Krieg: USA vs UdSSR, Kubakrise, Rüstungswettlauf, Mauerfall',
+    'Deutsche Geschichte: Kaiserreich, Weimarer Republik, DDR, Wiedervereinigung',
+    'Weltgeschichte 21. Jahrhundert: 9/11, Arabischer Frühling, moderne Konflikte',
   ],
   wissenschaft: [
-    'Physik: Quantenmechanik, Relativitätstheorie, Thermodynamik und Elektrizität',
-    'Chemie: Elemente, Verbindungen, chemische Reaktionen und das Periodensystem',
-    'Biologie: Zellen, Genetik, Evolution, Ökosysteme und menschlicher Körper',
-    'Astronomie: Planeten, Sterne, Galaxien, Schwarze Löcher und Raumfahrt',
-    'Mathematik, Informatik, Erfindungen und technologische Meilensteine',
+    'Physik: Mechanik, Gravitation, Relativitätstheorie und Quantenmechanik',
+    'Elektrizität, Magnetismus, Optik und Wellenphysik',
+    'Chemie: Atome, Elemente, Periodensystem und chemische Bindungen',
+    'Chemische Reaktionen, Säuren, Basen und organische Chemie',
+    'Biologie: Zellen, DNA, Genetik und Vererbung',
+    'Evolution, Ökologie, Ökosysteme und Artenvielfalt',
+    'Menschlicher Körper: Organe, Gehirn, Immunsystem und Medizin',
+    'Astronomie: Sonnensystem, Sterne, Galaxien und Kosmologie',
+    'Technologie: Computer, KI, Quantencomputing und technologische Meilensteine',
   ],
   philosophie: [
-    'Antike Philosophen: Sokrates, Platon, Aristoteles und ihre Kernthesen',
-    'Ethik, Moralphilosophie, Utilitarismus und deontologische Theorien',
-    'Erkenntnistheorie, Bewusstsein, freier Wille und Wahrnehmungstheorien',
-    'Politische Philosophie: Demokratie, Gerechtigkeit, Freiheit und Gesellschaftsvertrag',
-    'Moderne Philosophen: Kant, Nietzsche, Sartre, Wittgenstein und ihre Ideen',
+    'Vorsokratiker, Sokrates, Platon und die platonische Akademie',
+    'Aristoteles: Logik, Ethik, Politik und Metaphysik',
+    'Stoizismus, Epikureismus, Skeptizismus und hellenistische Philosophie',
+    'Aufklärung: Kant, Locke, Rousseau, Voltaire und ihre Kernideen',
+    'Existentialismus: Kierkegaard, Sartre, Camus, de Beauvoir',
+    'Ethik: Utilitarismus, Deontologie, Tugendethik und angewandte Ethik',
+    'Erkenntnistheorie, Logik, Sprachphilosophie und Wittgenstein',
+    'Politische Philosophie: Hobbes, Marx, Rawls und Gesellschaftsvertrag',
+    'Nietzsche, Schopenhauer, Hegel und deutsche Idealisten',
   ],
   wirtschaft: [
-    'Volkswirtschaft, Wirtschaftssysteme, Konjunkturzyklen und Makroökonomie',
-    'Berühmte Unternehmen, Gründer, Geschäftsmodelle und Innovationen',
-    'Finanzwelt: Aktien, Börse, Währungen, Kryptowährungen und Investments',
-    'Wirtschaftsgeschichte: Industrialisierung, Weltwirtschaftskrise und Globalisierung',
-    'Wirtschaftstheorien, Ökonomen und wirtschaftspolitische Konzepte',
+    'Mikroökonomie: Angebot, Nachfrage, Märkte und Preisbildung',
+    'Makroökonomie: BIP, Inflation, Arbeitslosigkeit und Konjunktur',
+    'Wirtschaftsgeschichte: Industrialisierung, Weltwirtschaftskrise, Bretton Woods',
+    'Berühmte Investoren: Buffett, Soros, Dalio und ihre Strategien',
+    'Technologieunternehmen: Apple, Google, Amazon – Gründer und Meilensteine',
+    'Finanzmärkte: Aktien, Anleihen, Derivate und Börsengeschichte',
+    'Wirtschaftstheorien: Smith, Keynes, Hayek, Friedman und ihre Modelle',
+    'Globalisierung, Welthandel, WTO, IWF und internationale Wirtschaft',
+    'Startups, Unternehmertum, Disruption und Geschäftsmodelle',
   ],
   natur: [
-    'Tiere: Verhalten, Rekorde, Anpassungen und bedrohte Arten',
-    'Pflanzen, Pilze, Algen und botanische Besonderheiten weltweit',
-    'Ökosysteme, Klimazonen, Biome und Naturphänomene',
-    'Geologie, Vulkane, Erdbeben, Mineralien und Erdgeschichte',
-    'Klimawandel, Umweltschutz, Artensterben und Naturkatastrophen',
+    'Säugetiere: Verhalten, Rekorde, Anpassungen und Besonderheiten',
+    'Vögel, Reptilien, Amphibien und ihre einzigartigen Eigenschaften',
+    'Meerestiere: Wale, Haie, Tintenfische und Tiefseebewohner',
+    'Insekten, Spinnen und Gliederfüßer – Fakten und Rekorde',
+    'Tropischer Regenwald, Savanne, Wüste und Polargebiete als Lebensräume',
+    'Bäume, Pflanzen, Pilze und ihre erstaunlichen Eigenschaften',
+    'Geologie: Vulkane, Erdbeben, Gesteinsarten und Erdgeschichte',
+    'Wetter, Klima, Naturkatastrophen und atmosphärische Phänomene',
+    'Umweltschutz, bedrohte Arten, Artensterben und Naturschutzgebiete',
   ],
   kultur: [
-    'Weltliteratur, berühmte Autoren, Romane und literarische Epochen',
-    'Musik: klassisch, Jazz, Rock, Pop – Bands, Komponisten und Meilensteine',
-    'Film, Kino, Oscar-Geschichte, Regisseure und Kultfilme',
-    'Bildende Kunst, Kunstbewegungen, Gemälde und berühmte Künstler',
-    'Architektur, Design, Modegeschichte und kulturelle Phänomene',
+    'Deutsche Literatur: Goethe, Schiller, Kafka, Brecht und Klassiker',
+    'Weltliteratur: Shakespeare, Tolstoi, Dostojewski, Proust und Nobelpreisträger',
+    'Klassische Musik: Bach, Mozart, Beethoven, Wagner und Komponisten',
+    'Pop & Rock: Beatles, Rolling Stones, Michael Jackson, Madonna und Meilensteine',
+    'Filmgeschichte: Stummfilm, Hollywood, Neue Welle und Meisterwerke',
+    'Bildende Kunst: Renaissance, Impressionismus, Surrealismus und moderne Kunst',
+    'Architektur: antike Bauwerke, Gotik, Bauhaus und zeitgenössische Ikonen',
+    'Theater, Oper, Ballett und darstellende Künste weltweit',
+    'Videospiele, Comics, Manga und moderne Popkulturphänomene',
   ],
 };
 
@@ -161,7 +193,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 async function main() {
   console.log('🧠 Gehirnjogging – Weitere Fragen Generator');
   console.log('=============================================');
-  console.log('8 categories × 3 difficulties × 5 sub-topics × 25 = ~3000 questions\n');
+  console.log('8 categories × 3 difficulties × 9 sub-topics × 25 = ~5400 questions\n');
 
   if (!process.env.CLAUDE_API_KEY) {
     console.error('❌ CLAUDE_API_KEY not set'); process.exit(1);
@@ -178,7 +210,7 @@ async function main() {
 
       for (let round = 0; round < subtopics.length; round++) {
         const subtopic = subtopics[round];
-        const label = `${category} | d${difficulty}/3 | Runde ${round + 1}/5`;
+        const label = `${category} | d${difficulty}/3 | Runde ${round + 1}/9`;
         process.stdout.write(`⏳ ${label} ... `);
 
         try {

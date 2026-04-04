@@ -20,10 +20,13 @@ export default function Footer() {
             <Link to="/agb" className="hover:text-white transition-colors">AGB</Link>
           </div>
 
-          {/* Copyright */}
-          <p className="text-xs text-gray-600">
-            © {new Date().getFullYear()} Hannes Herwig
-          </p>
+          {/* Copyright + contact */}
+          <div className="text-center sm:text-right">
+            <p className="text-xs text-gray-600">© {new Date().getFullYear()} Gehirnjogging</p>
+            <a href="mailto:gehirnjoggingkanal@gmail.com" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+              gehirnjoggingkanal@gmail.com
+            </a>
+          </div>
         </div>
       </div>
     </footer>

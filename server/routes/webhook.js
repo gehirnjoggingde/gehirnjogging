@@ -1,14 +1,15 @@
 const express = require('express');
 const twilio = require('twilio');
 const supabase = require('../services/supabaseClient');
-const { sendFeedback } = require('../services/twilioService');
+const { sendFeedback, sendQuiz } = require('../services/twilioService');
 
 const router = express.Router();
 
 /**
  * POST /api/webhook/twilio
  * Twilio sends incoming WhatsApp messages here.
- * User replies with 1, 2, 3, or 4 → we find their pending question and check the answer.
+ * User replies with 1, 2, 3, or 4 → we find their oldest pending question,
+ * check the answer, send feedback, then automatically send the next question.
  */
 router.post('/twilio', async (req, res) => {
   // Validate Twilio signature in production
@@ -19,89 +20,82 @@ router.post('/twilio', async (req, res) => {
       `${process.env.BACKEND_URL}/api/webhook/twilio`,
       req.body
     );
-    if (!valid) {
-      return res.status(403).send('Forbidden');
-    }
+    if (!valid) return res.status(403).send('Forbidden');
   }
 
-  const from = req.body.From; // e.g. "whatsapp:+491234567890"
-  const body = (req.body.Body || '').trim();
-
-  // Extract phone number (strip "whatsapp:" prefix)
+  const from  = req.body.From || '';
+  const body  = (req.body.Body || '').trim();
   const phoneNumber = from.replace('whatsapp:', '');
 
-  // Find user by phone
+  // ── 1. Find user ──────────────────────────────────────────
   const { data: user, error: userError } = await supabase
     .from('users')
-    .select('id, name, subscription_status')
+    .select('id, name, daily_question_count, subscription_status')
     .eq('phone', phoneNumber)
     .single();
 
   if (userError || !user) {
     await sendFeedback(phoneNumber,
-      `Wir konnten keinen Account für diese Nummer finden. Bitte registriere dich auf unserer Website.`
+      '❓ Wir konnten keinen Account für diese Nummer finden.\nBitte registriere dich auf gehirnjoggingclub.de'
     );
     return res.type('text/xml').send('<Response></Response>');
   }
 
-  if (user.subscription_status === 'cancelled' || user.subscription_status === 'past_due') {
+  if (['cancelled', 'past_due'].includes(user.subscription_status)) {
     await sendFeedback(phoneNumber,
-      `Dein Abonnement ist nicht aktiv. Bitte melde dich auf unserer Website an.`
+      '⚠️ Dein Abonnement ist nicht mehr aktiv.\nMelde dich auf gehirnjoggingclub.de an.'
     );
     return res.type('text/xml').send('<Response></Response>');
   }
 
-  // Map "1"→"a", "2"→"b", "3"→"c", "4"→"d"
+  // ── 2. Validate answer ────────────────────────────────────
   const answerMap = { '1': 'a', '2': 'b', '3': 'c', '4': 'd' };
   const answer = answerMap[body];
 
   if (!answer) {
     await sendFeedback(phoneNumber,
-      `Bitte antworte mit 1️⃣, 2️⃣, 3️⃣ oder 4️⃣ auf das heutige Quiz.`
+      '❓ Bitte antworte mit *1*, *2*, *3* oder *4* auf die Quiz-Frage.'
     );
     return res.type('text/xml').send('<Response></Response>');
   }
 
-  // Find today's unanswered question for this user
+  // ── 3. Find oldest unanswered question today ──────────────
   const today = new Date().toISOString().split('T')[0];
 
-  // Get the question that was sent to the user today (most recent unanswered)
-  const { data: sentRecord } = await supabase
+  const { data: sentRecords } = await supabase
     .from('user_answers')
-    .select('question_id')
+    .select('id, question_id, answered_at')
     .eq('user_id', user.id)
-    .is('user_answer', null) // null = sent but not answered
+    .is('user_answer', null)
     .gte('answered_at', `${today}T00:00:00`)
-    .order('answered_at', { ascending: false })
-    .limit(1)
-    .single();
+    .order('answered_at', { ascending: true }); // oldest first = question sent earliest
 
-  // Fallback: get scheduled question for today
-  let questionId = sentRecord?.question_id;
+  const sentRecord = sentRecords?.[0] || null;
+  const totalSentToday = await getTotalSentToday(user.id, today);
 
-  if (!questionId) {
-    const { data: scheduled } = await supabase
-      .from('quiz_questions')
-      .select('id')
-      .eq('scheduled_date', today)
-      .single();
-    questionId = scheduled?.id;
-  }
-
-  if (!questionId) {
-    await sendFeedback(phoneNumber, `Für heute gibt es kein offenes Quiz. Bis morgen! 🧠`);
+  if (!sentRecord) {
+    await sendFeedback(phoneNumber,
+      `✅ Du hast alle heutigen Fragen beantwortet. Bis morgen! 🧠`
+    );
     return res.type('text/xml').send('<Response></Response>');
   }
 
-  // Get full question
+  const questionId = sentRecord.question_id;
+
+  // ── 4. Get full question ──────────────────────────────────
   const { data: question } = await supabase
     .from('quiz_questions')
     .select('correct_answer, explanation, answer_a, answer_b, answer_c, answer_d')
     .eq('id', questionId)
     .single();
 
-  const is_correct = answer === question.correct_answer.toLowerCase();
+  if (!question) {
+    await sendFeedback(phoneNumber, '⚠️ Frage nicht gefunden. Bitte melde dich bei uns.');
+    return res.type('text/xml').send('<Response></Response>');
+  }
 
+  // ── 5. Check answer & save ────────────────────────────────
+  const is_correct = answer === question.correct_answer.toLowerCase();
   const answerTextMap = {
     a: question.answer_a,
     b: question.answer_b,
@@ -109,32 +103,71 @@ router.post('/twilio', async (req, res) => {
     d: question.answer_d,
   };
 
-  // Save answer
-  await supabase.from('user_answers').upsert({
-    user_id: user.id,
-    question_id: questionId,
+  await supabase.from('user_answers').update({
     user_answer: answer,
     is_correct,
     answered_at: new Date().toISOString(),
-  }, { onConflict: 'user_id,question_id' });
+  }).eq('id', sentRecord.id);
 
-  // Build feedback message
-  let feedback;
+  // ── 6. Build feedback ─────────────────────────────────────
+  const remainingUnanswered = (sentRecords?.length || 1) - 1; // after this answer
+  const dailyCount = user.daily_question_count || 1;
+  const answeredNumber = totalSentToday - remainingUnanswered;
+
+  let feedback = '';
   if (is_correct) {
-    feedback = `✅ *Richtig!* Super gemacht, ${user.name}!\n\n`;
+    feedback += `✅ *Richtig!* Stark, ${user.name?.split(' ')[0] || 'du'}!\n\n`;
   } else {
-    feedback = `❌ *Leider falsch.* Die richtige Antwort war:\n*${answerTextMap[question.correct_answer]}*\n\n`;
+    feedback += `❌ *Leider falsch.*\nRichtige Antwort: *${answerTextMap[question.correct_answer.toLowerCase()]}*\n\n`;
   }
 
   if (question.explanation) {
-    feedback += `💡 *Erklärung:*\n${question.explanation}`;
+    feedback += `💡 *Erklärung:*\n${question.explanation}\n\n`;
   }
 
-  feedback += `\n\nBis morgen! 🧠`;
+  // Progress indicator
+  if (dailyCount > 1) {
+    if (remainingUnanswered > 0) {
+      feedback += `📊 *${answeredNumber} von ${dailyCount} Fragen beantwortet* – gleich kommt die nächste!`;
+    } else {
+      feedback += `🎉 *Alle ${dailyCount} Fragen für heute erledigt!* Bis morgen! 🧠`;
+    }
+  } else {
+    feedback += `Bis morgen! 🧠`;
+  }
 
   await sendFeedback(phoneNumber, feedback);
 
+  // ── 7. Send next question if available ────────────────────
+  if (remainingUnanswered > 0) {
+    await sleep(2000);
+    const nextRecord = sentRecords[1]; // second oldest unanswered
+    if (nextRecord) {
+      const { data: nextQ } = await supabase
+        .from('quiz_questions')
+        .select('*')
+        .eq('id', nextRecord.question_id)
+        .single();
+
+      if (nextQ) {
+        const nextNumber = answeredNumber + 1;
+        await sendQuiz(phoneNumber, nextQ, nextNumber, dailyCount);
+      }
+    }
+  }
+
   return res.type('text/xml').send('<Response></Response>');
 });
+
+async function getTotalSentToday(userId, today) {
+  const { count } = await supabase
+    .from('user_answers')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('answered_at', `${today}T00:00:00`);
+  return count || 0;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 module.exports = router;

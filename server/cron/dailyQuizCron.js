@@ -65,15 +65,16 @@ async function sendQuizToUser(user) {
     return;
   }
 
-  const questions = await getQuestionsForUser(user, remaining);
+  // Sequential mode: cron only sends the FIRST question of the day.
+  // After the user answers, the webhook automatically sends the next one.
+  const questions = await getQuestionsForUser(user, count);
   if (!questions.length) {
     console.error(`[Cron] No questions available for ${user.phone}`);
     return;
   }
 
-  for (let i = 0; i < questions.length; i++) {
-    const q = questions[i];
-    await sendQuiz(user.phone, q, i + 1 + alreadySentCount, count);
+  // Pre-insert all questions as pending (null answer) so webhook can track order
+  for (const q of questions) {
     await supabase.from('user_answers').insert({
       user_id: user.id,
       question_id: q.id,
@@ -81,10 +82,14 @@ async function sendQuizToUser(user) {
       is_correct: false,
       answered_at: new Date().toISOString(),
     });
-    if (i < questions.length - 1) await sleep(2000);
+    await sleep(50); // tiny delay so timestamps differ (preserves order)
   }
 
-  console.log(`[Cron] ✓ Sent ${questions.length} question(s) to ${user.phone}`);
+  // Only send the FIRST question now – rest are triggered by webhook answers
+  const firstQ = questions[0];
+  await sendQuiz(user.phone, firstQ, 1, count);
+
+  console.log(`[Cron] ✓ Queued ${questions.length} question(s) for ${user.phone}, sent Q1`);
 }
 
 function pad(n) { return String(n).padStart(2, '0'); }

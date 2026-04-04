@@ -140,10 +140,8 @@ router.get('/stats', async (req, res) => {
   const total = answers.length;
   const correct = answers.filter(a => a.is_correct).length;
 
-  // Calculate current streak (consecutive days with at least one correct answer)
-  const daySet = new Set(answers
-    .filter(a => a.is_correct)
-    .map(a => a.answered_at.split('T')[0]));
+  // Calculate current streak (consecutive days with at least one answer, right or wrong)
+  const daySet = new Set(answers.map(a => a.answered_at.split('T')[0]));
 
   let streak = 0;
   const today = new Date();

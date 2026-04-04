@@ -69,12 +69,12 @@ function AnimatedChat() {
 
 /* ── Data ────────────────────────────────────────────────── */
 const FEATURES = [
-  { icon: '📲', title: 'Direkt auf WhatsApp',  desc: 'Keine App, kein Login. Dein Quiz kommt dorthin, wo du sowieso bist.' },
-  { icon: '🎯', title: 'Anzahl wählbar',        desc: '1 bis 5 Fragen täglich – du entscheidest wie intensiv du trainierst.' },
-  { icon: '📚', title: 'Deine Kategorie',       desc: 'Wähle aus 8 Themen was dich wirklich interessiert.' },
-  { icon: '💡', title: 'Mit Erklärung',         desc: 'Nicht nur richtig oder falsch – du verstehst auch warum.' },
-  { icon: '📊', title: 'Wöchentlicher Score',   desc: 'Jeden Sonntag deine Wochenbilanz direkt auf WhatsApp.' },
-  { icon: '👥', title: 'Freunde einladen',      desc: 'Teile deinen Link – und tretet gemeinsam gegen euer Wissen an.' },
+  { icon: '📲', title: 'Direkt auf WhatsApp',    desc: 'Keine App, kein Login. Dein Quiz kommt dorthin, wo du sowieso bist.' },
+  { icon: '🎯', title: 'Anzahl wählbar',          desc: 'Bis zu 5 Fragen täglich – du entscheidest wie intensiv du trainierst.' },
+  { icon: '📚', title: 'Deine Kategorie',         desc: 'Wähle aus 8 Themen was dich wirklich interessiert.' },
+  { icon: '🏋️', title: 'Schwierigkeitsgrad',     desc: 'Leicht, Mittel oder Schwer – du bestimmst wie sehr dein Gehirn gefordert wird.' },
+  { icon: '💡', title: 'Mit Erklärung',           desc: 'Nicht nur richtig oder falsch – du verstehst auch warum.' },
+  { icon: '📊', title: 'Wöchentlicher Score',     desc: 'Jeden Sonntag deine Wochenbilanz direkt auf WhatsApp.' },
 ];
 
 const CATEGORIES = [
@@ -90,7 +90,7 @@ const CATEGORIES = [
 
 const STEPS = [
   { n: '1', icon: '✍️', title: 'Registrieren',         desc: 'Name, E-Mail und WhatsApp-Nummer – in 2 Minuten fertig.' },
-  { n: '2', icon: '⚙️', title: 'Personalisieren',       desc: 'Wähle deine Kategorie, Uhrzeit und wie viele Fragen täglich.' },
+  { n: '2', icon: '⚙️', title: 'Personalisieren',       desc: 'Wähle Kategorie, Schwierigkeit, Uhrzeit und Anzahl der Fragen.' },
   { n: '3', icon: '📩', title: 'Täglich klüger werden', desc: 'Dein Quiz landet pünktlich im Chat – einfach antworten und lernen.' },
 ];
 

@@ -17,8 +17,18 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'https://gehirnjoggingclub.de',
+  'https://www.gehirnjoggingclub.de',
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+];
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, cb) => {
+    // allow requests with no origin (curl, Postman, mobile apps)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS blocked: ${origin}`));
+  },
   credentials: true,
 }));
 

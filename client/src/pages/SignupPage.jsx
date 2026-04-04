@@ -127,7 +127,14 @@ export default function SignupPage({ mode = 'signup' }) {
               )}
 
               <div>
-                <label className="label">Passwort</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="label mb-0">Passwort</label>
+                  {isLogin && (
+                    <Link to="/forgot-password" className="text-xs text-brand-600 hover:underline font-medium">
+                      Passwort vergessen?
+                    </Link>
+                  )}
+                </div>
                 <input name="password" type="password" className={`input ${errors.password ? 'border-red-400 ring-2 ring-red-100' : ''}`}
                   placeholder="Mindestens 8 Zeichen" value={form.password} onChange={handleChange}
                   autoComplete={isLogin ? 'current-password' : 'new-password'} />

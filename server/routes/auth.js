@@ -1,7 +1,11 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { Resend } = require('resend');
 const supabase = require('../services/supabaseClient');
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const router = express.Router();
 
@@ -85,6 +89,111 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('[Login]', err);
     return res.status(500).json({ error: 'Login fehlgeschlagen' });
+  }
+});
+
+// POST /api/auth/forgot-password
+// Body: { email }
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'E-Mail erforderlich' });
+
+  try {
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, name, email')
+      .eq('email', email.toLowerCase().trim())
+      .single();
+
+    // Always respond with success to prevent email enumeration
+    if (!user) return res.json({ message: 'Falls diese E-Mail existiert, wurde ein Link gesendet.' });
+
+    // Generate secure token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // Invalidate old tokens for this user
+    await supabase
+      .from('password_reset_tokens')
+      .update({ used: true })
+      .eq('user_id', user.id)
+      .eq('used', false);
+
+    // Save new token
+    await supabase.from('password_reset_tokens').insert({
+      user_id: user.id,
+      token,
+      expires_at: expiresAt.toISOString(),
+    });
+
+    const resetUrl = `${process.env.FRONTEND_URL || 'https://gehirnjoggingclub.de'}/reset-password?token=${token}`;
+
+    await resend.emails.send({
+      from: 'Gehirnjogging <noreply@gehirnjoggingclub.de>',
+      to: user.email,
+      subject: 'Passwort zurücksetzen – Gehirnjogging',
+      html: `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #ffffff;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="font-size: 24px; font-weight: 800; color: #111827; margin: 0;">
+              Gehirn<span style="color: #2563eb;">jogging</span>
+            </h1>
+          </div>
+          <h2 style="font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 8px;">
+            Passwort zurücksetzen
+          </h2>
+          <p style="color: #6b7280; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+            Hallo ${user.name},<br><br>
+            du hast angefordert dein Passwort zurückzusetzen. Klicke auf den Button um ein neues Passwort festzulegen.
+          </p>
+          <a href="${resetUrl}" style="display: inline-block; background: #2563eb; color: #ffffff; font-weight: 700; font-size: 15px; padding: 14px 28px; border-radius: 12px; text-decoration: none; margin-bottom: 24px;">
+            Passwort zurücksetzen →
+          </a>
+          <p style="color: #9ca3af; font-size: 13px; line-height: 1.5; margin-bottom: 0;">
+            Dieser Link ist <strong>1 Stunde</strong> gültig. Falls du kein Zurücksetzen angefordert hast, kannst du diese E-Mail ignorieren.
+          </p>
+          <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 24px 0;">
+          <p style="color: #d1d5db; font-size: 12px; text-align: center; margin: 0;">
+            © Gehirnjogging · Hannes Herwig · Bad Hersfeld
+          </p>
+        </div>
+      `,
+    });
+
+    return res.json({ message: 'Falls diese E-Mail existiert, wurde ein Link gesendet.' });
+  } catch (err) {
+    console.error('[ForgotPassword]', err);
+    return res.status(500).json({ error: 'Fehler beim Senden der E-Mail' });
+  }
+});
+
+// POST /api/auth/reset-password
+// Body: { token, password }
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Token und Passwort erforderlich' });
+  if (password.length < 8) return res.status(400).json({ error: 'Passwort muss mindestens 8 Zeichen haben' });
+
+  try {
+    const { data: resetToken } = await supabase
+      .from('password_reset_tokens')
+      .select('user_id, expires_at, used')
+      .eq('token', token)
+      .single();
+
+    if (!resetToken) return res.status(400).json({ error: 'Ungültiger oder abgelaufener Link' });
+    if (resetToken.used) return res.status(400).json({ error: 'Dieser Link wurde bereits verwendet' });
+    if (new Date(resetToken.expires_at) < new Date()) return res.status(400).json({ error: 'Link abgelaufen – bitte neu anfordern' });
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await supabase.from('users').update({ password_hash: passwordHash }).eq('id', resetToken.user_id);
+    await supabase.from('password_reset_tokens').update({ used: true }).eq('token', token);
+
+    return res.json({ message: 'Passwort erfolgreich geändert' });
+  } catch (err) {
+    console.error('[ResetPassword]', err);
+    return res.status(500).json({ error: 'Fehler beim Zurücksetzen' });
   }
 });
 

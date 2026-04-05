@@ -18,6 +18,7 @@ router.post('/create-checkout', authMiddleware, async (req, res) => {
 
     const sessionParams = {
       automatic_payment_methods: { enabled: true },
+      allow_promotion_codes: true,
       line_items: [{
         price_data: {
           currency: 'eur',

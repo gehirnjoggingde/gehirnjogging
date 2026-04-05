@@ -258,204 +258,185 @@ export default function Dashboard() {
 
       {/* ── Main Content ──────────────────────────────────── */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6 lg:py-8">
+        {/*
+          Mobile order:  Uhrzeit → Kategorien → Intensität → Speichern → So funktionierts → Einladungslink → Abonnement
+          Desktop order: Left col (Uhrzeit, So funktionierts, Einladungslink) | Right col (Kategorien, Intensität, Speichern, Abonnement)
+          Achieved via CSS grid row/col assignments on lg breakpoint.
+        */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 items-start">
 
-          {/* ── LEFT COLUMN ─────────────────────────────── */}
-          <div className="space-y-4">
-
-            {/* Quiz Time */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
-              <SectionLabel>Quiz-Uhrzeit</SectionLabel>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-3xl font-extrabold text-gray-900 leading-none">{user?.quiz_time} Uhr</p>
-                  <p className="text-sm text-gray-400 mt-1.5">
-                    {user?.daily_question_count > 1
-                      ? `${user.daily_question_count} Fragen täglich · täglich auf WhatsApp`
-                      : '1 Frage täglich · auf WhatsApp'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowTimePicker(true)}
-                  className="btn-secondary text-sm py-2 px-4 flex-shrink-0"
-                >
-                  Ändern
-                </button>
-              </div>
-            </div>
-
-            {/* Freunde einladen */}
-            <div className="bg-gradient-to-br from-brand-600 to-brand-800 rounded-2xl p-5 text-white shadow-glow">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1">Freunde einladen</p>
-                  <h3 className="text-lg font-extrabold leading-snug mb-1">
-                    Teile Gehirnjogging 🧠
-                  </h3>
-                  <p className="text-sm text-white/70 leading-relaxed">
-                    Schick deinen Freunden deinen persönlichen Link und macht gemeinsam schlauer.
-                  </p>
-                </div>
-                <span className="text-4xl select-none flex-shrink-0">🎁</span>
+          {/* 1 · Quiz Time — left col, row 1 */}
+          <div className="lg:col-start-1 lg:row-start-1 bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <SectionLabel>Quiz-Uhrzeit</SectionLabel>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-3xl font-extrabold text-gray-900 leading-none">{user?.quiz_time} Uhr</p>
+                <p className="text-sm text-gray-400 mt-1.5">
+                  {user?.daily_question_count > 1
+                    ? `${user.daily_question_count} Fragen täglich · auf WhatsApp`
+                    : '1 Frage täglich · auf WhatsApp'}
+                </p>
               </div>
               <button
-                onClick={handleCopyReferral}
-                className={`mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[.97] ${
-                  copied
-                    ? 'bg-green-500 text-white'
-                    : 'bg-white/15 hover:bg-white/25 text-white border border-white/20'
-                }`}
+                onClick={() => setShowTimePicker(true)}
+                className="btn-secondary text-sm py-2 px-4 flex-shrink-0"
               >
-                {copied ? '✓ Link kopiert!' : '🔗 Einladungslink kopieren'}
+                Ändern
               </button>
             </div>
-
-            {/* How to answer */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
-              <SectionLabel>So funktioniert's</SectionLabel>
-              <div className="space-y-3">
-                {[
-                  { step: '1', text: 'Du bekommst täglich eine Frage per WhatsApp.' },
-                  { step: '2', text: 'Antworte mit 1, 2, 3 oder 4 auf die Antwortmöglichkeit.' },
-                  { step: '3', text: 'Du erhältst sofort Feedback mit Erklärung.' },
-                ].map(({ step, text }) => (
-                  <div key={step} className="flex items-start gap-3">
-                    <span className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {step}
-                    </span>
-                    <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Active Categories Preview (mobile: full, desktop: hidden since settings are always visible) */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5 lg:hidden">
-              <SectionLabel>Aktive Kategorien</SectionLabel>
-              <div className="flex flex-wrap gap-2">
-                {(user?.preferred_categories || ['allgemeinwissen']).map(cat => {
-                  const c = CATEGORIES.find(c => c.id === cat);
-                  return c ? (
-                    <span key={cat} className="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-brand-100">
-                      {c.icon} {c.label}
-                    </span>
-                  ) : null;
-                })}
-              </div>
-            </div>
-
           </div>
 
-          {/* ── RIGHT COLUMN (Settings) ──────────────────── */}
-          <div className="space-y-4">
+          {/* 2 · Categories — right col, row 1 */}
+          <div className="lg:col-start-2 lg:row-start-1 bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <SectionLabel>Themenkategorien</SectionLabel>
+            <p className="text-xs text-gray-400 mb-3 -mt-1">Mehrere wählbar – mindestens eine.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {CATEGORIES.map(cat => {
+                const active = settingsForm.preferred_categories.includes(cat.id);
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => toggleCategory(cat.id)}
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border-2 text-sm font-medium transition-all active:scale-[.97] text-left ${
+                      active
+                        ? 'border-brand-500 bg-brand-50 text-brand-700'
+                        : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="text-base flex-shrink-0">{cat.icon}</span>
+                    <span className="text-xs leading-tight truncate">{cat.label}</span>
+                    {active && (
+                      <span className="ml-auto w-4 h-4 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 8">
+                          <path d="M1 4l2.5 2.5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-            {/* Categories */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
-              <SectionLabel>Themenkategorien</SectionLabel>
-              <p className="text-xs text-gray-400 mb-3 -mt-1">Mehrere wählbar – mindestens eine.</p>
-              <div className="grid grid-cols-2 gap-2">
-                {CATEGORIES.map(cat => {
-                  const active = settingsForm.preferred_categories.includes(cat.id);
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => toggleCategory(cat.id)}
-                      className={`flex items-center gap-2 p-2.5 rounded-xl border-2 text-sm font-medium transition-all active:scale-[.97] text-left ${
-                        active
-                          ? 'border-brand-500 bg-brand-50 text-brand-700'
-                          : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-gray-100'
-                      }`}
-                    >
-                      <span className="text-base flex-shrink-0">{cat.icon}</span>
-                      <span className="text-xs leading-tight truncate">{cat.label}</span>
-                      {active && (
-                        <span className="ml-auto w-4 h-4 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 8">
-                            <path d="M1 4l2.5 2.5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+          {/* 3 · Sliders — right col, row 2 */}
+          <div className="lg:col-start-2 lg:row-start-2 bg-white rounded-2xl border border-gray-100 shadow-card p-5 space-y-5">
+            <SectionLabel>Quiz-Intensität</SectionLabel>
+
+            <SliderInput
+              label="Fragen pro Tag"
+              value={settingsForm.daily_question_count}
+              min={1} max={5}
+              onChange={v => setSettingsForm(p => ({ ...p, daily_question_count: v }))}
+              displayValue={`${settingsForm.daily_question_count} · ${QUESTION_LABELS[settingsForm.daily_question_count]}`}
+            />
+
+            <div className="border-t border-gray-50" />
+
+            <SliderInput
+              label="Schwierigkeitsgrad"
+              value={settingsForm.difficulty_level}
+              min={1} max={3}
+              onChange={v => setSettingsForm(p => ({ ...p, difficulty_level: v }))}
+              displayValue={`${DIFFICULTY_LABELS[settingsForm.difficulty_level]}`}
+            />
+          </div>
+
+          {/* 4 · Save — right col, row 3 */}
+          <button
+            onClick={saveSettings}
+            disabled={saving}
+            className="lg:col-start-2 lg:row-start-3 btn-primary w-full py-3.5 text-sm"
+          >
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                Wird gespeichert…
+              </span>
+            ) : 'Einstellungen speichern'}
+          </button>
+
+          {/* 5 · How to answer — left col, row 2 */}
+          <div className="lg:col-start-1 lg:row-start-2 bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <SectionLabel>So funktioniert's</SectionLabel>
+            <div className="space-y-3">
+              {[
+                { step: '1', text: 'Du bekommst täglich eine Frage per WhatsApp.' },
+                { step: '2', text: 'Antworte mit 1, 2, 3 oder 4 auf die Antwortmöglichkeit.' },
+                { step: '3', text: 'Du erhältst sofort Feedback mit Erklärung.' },
+              ].map(({ step, text }) => (
+                <div key={step} className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                    {step}
+                  </span>
+                  <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 6 · Freunde einladen — left col, row 3 */}
+          <div className="lg:col-start-1 lg:row-start-3 bg-gradient-to-br from-brand-600 to-brand-800 rounded-2xl p-5 text-white shadow-glow">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1">Freunde einladen</p>
+                <h3 className="text-lg font-extrabold leading-snug mb-1">
+                  Teile Gehirnjogging 🧠
+                </h3>
+                <p className="text-sm text-white/70 leading-relaxed">
+                  Schick deinen Freunden deinen persönlichen Link und macht gemeinsam schlauer.
+                </p>
               </div>
+              <span className="text-4xl select-none flex-shrink-0">🎁</span>
             </div>
-
-            {/* Sliders */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5 space-y-5">
-              <SectionLabel>Quiz-Intensität</SectionLabel>
-
-              <SliderInput
-                label="Fragen pro Tag"
-                value={settingsForm.daily_question_count}
-                min={1} max={5}
-                onChange={v => setSettingsForm(p => ({ ...p, daily_question_count: v }))}
-                displayValue={`${settingsForm.daily_question_count} · ${QUESTION_LABELS[settingsForm.daily_question_count]}`}
-              />
-
-              <div className="border-t border-gray-50" />
-
-              <SliderInput
-                label="Schwierigkeitsgrad"
-                value={settingsForm.difficulty_level}
-                min={1} max={3}
-                onChange={v => setSettingsForm(p => ({ ...p, difficulty_level: v }))}
-                displayValue={`${DIFFICULTY_LABELS[settingsForm.difficulty_level]}`}
-              />
-            </div>
-
-            {/* Save */}
             <button
-              onClick={saveSettings}
-              disabled={saving}
-              className="btn-primary w-full py-3.5 text-sm"
+              onClick={handleCopyReferral}
+              className={`mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[.97] ${
+                copied
+                  ? 'bg-green-500 text-white'
+                  : 'bg-white/15 hover:bg-white/25 text-white border border-white/20'
+              }`}
             >
-              {saving ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Wird gespeichert…
-                </span>
-              ) : 'Einstellungen speichern'}
+              {copied ? '✓ Link kopiert!' : '🔗 Einladungslink kopieren'}
             </button>
+          </div>
 
-            {/* Subscription */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
-              <SectionLabel>Abonnement</SectionLabel>
-              <div className="flex items-center gap-2 mb-4">
-                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                  user?.subscription_status === 'active' ? 'bg-green-500' :
-                  user?.subscription_status === 'paused' ? 'bg-amber-400' : 'bg-red-400'
-                }`} />
-                <span className="text-sm font-semibold text-gray-800">
-                  {user?.subscription_status === 'active' ? 'Aktiv' :
-                   user?.subscription_status === 'paused' ? 'Pausiert' : 'Inaktiv'}
-                </span>
-                {user?.subscription_status === 'active' && (
-                  <span className="text-xs text-gray-400">· 2,99 €/Monat</span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <button
-                  onClick={handlePauseToggle}
-                  className={`w-full py-2.5 rounded-xl text-sm font-semibold border transition-all active:scale-[.97] ${
-                    user?.is_paused
-                      ? 'bg-brand-600 text-white border-brand-600 hover:bg-brand-700'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {user?.is_paused ? '▶ Quiz fortsetzen' : '⏸ Quiz pausieren'}
-                </button>
-                <Link
-                  to="/settings"
-                  className="flex items-center justify-center gap-1 w-full py-2 text-sm text-gray-400 hover:text-brand-600 font-medium transition-colors"
-                >
-                  Kündigen & weitere Optionen →
-                </Link>
-              </div>
+          {/* 7 · Subscription — right col, row 4 */}
+          <div className="lg:col-start-2 lg:row-start-4 bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <SectionLabel>Abonnement</SectionLabel>
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                user?.subscription_status === 'active' ? 'bg-green-500' :
+                user?.subscription_status === 'paused' ? 'bg-amber-400' : 'bg-red-400'
+              }`} />
+              <span className="text-sm font-semibold text-gray-800">
+                {user?.subscription_status === 'active' ? 'Aktiv' :
+                 user?.subscription_status === 'paused' ? 'Pausiert' : 'Inaktiv'}
+              </span>
+              {user?.subscription_status === 'active' && (
+                <span className="text-xs text-gray-400">· 2,99 €/Monat</span>
+              )}
             </div>
 
+            <div className="space-y-2">
+              <button
+                onClick={handlePauseToggle}
+                className={`w-full py-2.5 rounded-xl text-sm font-semibold border transition-all active:scale-[.97] ${
+                  user?.is_paused
+                    ? 'bg-brand-600 text-white border-brand-600 hover:bg-brand-700'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {user?.is_paused ? '▶ Quiz fortsetzen' : '⏸ Quiz pausieren'}
+              </button>
+              <Link
+                to="/settings"
+                className="flex items-center justify-center gap-1 w-full py-2 text-sm text-gray-400 hover:text-brand-600 font-medium transition-colors"
+              >
+                Kündigen & weitere Optionen →
+              </Link>
+            </div>
           </div>
+
         </div>
       </main>
 

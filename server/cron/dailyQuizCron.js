@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const supabase = require('../services/supabaseClient');
-const { sendQuiz } = require('../services/twilioService');
+const { sendQuiz, sendQuizTemplate } = require('../services/twilioService');
 const { getQuestionsForUser } = require('../services/quizService');
 
 // Run every 5 minutes
@@ -101,9 +101,9 @@ async function sendQuizToUser(user) {
     await sleep(50); // tiny delay so timestamps differ (preserves order)
   }
 
-  // Only send the FIRST question now – rest are triggered by webhook answers
+  // Only send the FIRST question now via template (business-initiated)
   const firstQ = questions[0];
-  await sendQuiz(user.phone, firstQ, 1, count);
+  await sendQuizTemplate(user.phone, firstQ);
 
   console.log(`[Cron] ✓ Queued ${questions.length} question(s) for ${user.phone}, sent Q1`);
 }

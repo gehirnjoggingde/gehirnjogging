@@ -2,7 +2,7 @@ const express = require('express');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const supabase = require('../services/supabaseClient');
 const authMiddleware = require('../middleware/auth');
-const { sendFeedback } = require('../services/twilioService');
+const { sendWelcomeTemplate } = require('../services/twilioService');
 
 const router = express.Router();
 
@@ -140,9 +140,8 @@ async function handleStripeEvent(event) {
 
         try {
           console.log('[Checkout] Sending welcome WhatsApp to:', newUser.phone);
-          await sendFeedback(newUser.phone,
-            `🧠 Hey ${newUser.name || ''}, willkommen im Gehirnjogging Club!\n\nDu hast dir gerade etwas richtig Gutes gegönnt. 💪\n\nTäglich um *${timeStr} Uhr* bekommst du deine persönlichen Quiz-Fragen direkt hier auf WhatsApp.\n\nTipp: Uhrzeit, Themen und Schwierigkeit kannst du jederzeit anpassen 👉 gehirnjoggingclub.de/dashboard\n\n${closing}`
-          );
+          const dayStr = isToday ? 'heute' : 'morgen';
+          await sendWelcomeTemplate(newUser.phone, newUser.name?.split(' ')[0] || 'du', dayStr, timeStr);
           console.log('[Checkout] Welcome WhatsApp sent successfully');
         } catch (waErr) {
           console.error('[Checkout] WhatsApp send failed:', waErr.message);

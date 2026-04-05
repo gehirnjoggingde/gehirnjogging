@@ -23,8 +23,8 @@ router.post('/twilio', async (req, res) => {
     if (!valid) return res.status(403).send('Forbidden');
   }
 
-  const from  = req.body.From || '';
-  const body  = (req.body.Body || '').trim();
+  const from = req.body.From || '';
+  const body = (req.body.Body || '').trim();
   const phoneNumber = from.replace('whatsapp:', '');
 
   // ── 1. Find user ──────────────────────────────────────────
@@ -48,7 +48,29 @@ router.post('/twilio', async (req, res) => {
     return res.type('text/xml').send('<Response></Response>');
   }
 
-  // ── 2. Validate answer ────────────────────────────────────
+  // ── 2. Find oldest pending question today ─────────────────
+  const today = new Date().toISOString().split('T')[0];
+
+  const { data: sentRecords } = await supabase
+    .from('user_answers')
+    .select('id, question_id, answered_at')
+    .eq('user_id', user.id)
+    .is('user_answer', null)
+    .gte('answered_at', `${today}T00:00:00`)
+    .order('answered_at', { ascending: true });
+
+  const sentRecord = sentRecords?.[0] || null;
+  const totalSentToday = await getTotalSentToday(user.id, today);
+
+  // ── 3. No pending question → all done for today ───────────
+  if (!sentRecord) {
+    await sendFeedback(phoneNumber,
+      `🎉 Du hast heute schon alle deine Fragen gemeistert – Respekt!\n\nKomm morgen wieder für frische Fragen. Dein Gehirn wird es dir danken. 🧠💪\n\n📱 Mehr oder weniger Fragen, andere Kategorien oder eine andere Uhrzeit?\nPasse alles bequem im Dashboard an:\n👉 gehirnjoggingclub.de/dashboard`
+    );
+    return res.type('text/xml').send('<Response></Response>');
+  }
+
+  // ── 4. Validate answer ────────────────────────────────────
   const answerMap = { '1': 'a', '2': 'b', '3': 'c', '4': 'd' };
   const answer = answerMap[body];
 
@@ -59,30 +81,9 @@ router.post('/twilio', async (req, res) => {
     return res.type('text/xml').send('<Response></Response>');
   }
 
-  // ── 3. Find oldest unanswered question today ──────────────
-  const today = new Date().toISOString().split('T')[0];
-
-  const { data: sentRecords } = await supabase
-    .from('user_answers')
-    .select('id, question_id, answered_at')
-    .eq('user_id', user.id)
-    .is('user_answer', null)
-    .gte('answered_at', `${today}T00:00:00`)
-    .order('answered_at', { ascending: true }); // oldest first = question sent earliest
-
-  const sentRecord = sentRecords?.[0] || null;
-  const totalSentToday = await getTotalSentToday(user.id, today);
-
-  if (!sentRecord) {
-    await sendFeedback(phoneNumber,
-      `✅ Du hast alle heutigen Fragen beantwortet. Bis morgen! 🧠`
-    );
-    return res.type('text/xml').send('<Response></Response>');
-  }
-
   const questionId = sentRecord.question_id;
 
-  // ── 4. Get full question ──────────────────────────────────
+  // ── 5. Get full question ──────────────────────────────────
   const { data: question } = await supabase
     .from('quiz_questions')
     .select('correct_answer, explanation, answer_a, answer_b, answer_c, answer_d')
@@ -94,7 +95,7 @@ router.post('/twilio', async (req, res) => {
     return res.type('text/xml').send('<Response></Response>');
   }
 
-  // ── 5. Check answer & save ────────────────────────────────
+  // ── 6. Check answer & save ────────────────────────────────
   const is_correct = answer === question.correct_answer.toLowerCase();
   const answerTextMap = {
     a: question.answer_a,
@@ -109,8 +110,8 @@ router.post('/twilio', async (req, res) => {
     answered_at: new Date().toISOString(),
   }).eq('id', sentRecord.id);
 
-  // ── 6. Build feedback ─────────────────────────────────────
-  const remainingUnanswered = (sentRecords?.length || 1) - 1; // after this answer
+  // ── 7. Build feedback ─────────────────────────────────────
+  const remainingUnanswered = (sentRecords?.length || 1) - 1;
   const dailyCount = user.daily_question_count || 1;
   const answeredNumber = totalSentToday - remainingUnanswered;
 
@@ -125,7 +126,6 @@ router.post('/twilio', async (req, res) => {
     feedback += `💡 *Erklärung:*\n${question.explanation}\n\n`;
   }
 
-  // Progress indicator
   if (dailyCount > 1) {
     if (remainingUnanswered > 0) {
       feedback += `📊 *${answeredNumber} von ${dailyCount} Fragen beantwortet* – gleich kommt die nächste!`;
@@ -138,10 +138,10 @@ router.post('/twilio', async (req, res) => {
 
   await sendFeedback(phoneNumber, feedback);
 
-  // ── 7. Send next question if available ────────────────────
+  // ── 8. Send next question if available ────────────────────
   if (remainingUnanswered > 0) {
     await sleep(2000);
-    const nextRecord = sentRecords[1]; // second oldest unanswered
+    const nextRecord = sentRecords[1];
     if (nextRecord) {
       const { data: nextQ } = await supabase
         .from('quiz_questions')

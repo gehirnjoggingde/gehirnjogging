@@ -78,61 +78,39 @@ export default function PaymentPage() {
           {/* Main card */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-card overflow-hidden mb-4">
 
-            {/* Price bar */}
-            <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-5 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white/70 text-xs font-medium uppercase tracking-wide mb-0.5">Dein Plan</p>
-                  <p className="text-xl font-extrabold">Gehirnjogging Pro</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-extrabold">2,99€</p>
-                  <p className="text-white/70 text-xs">/ Monat · nach Testphase</p>
-                </div>
-              </div>
+            {/* Trial highlight – primary focus */}
+            <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-5 text-white text-center">
+              <p className="text-3xl font-extrabold mb-0.5">7 Tage kostenlos</p>
+              <p className="text-white/80 text-sm">Danach nur 2,99 € / Monat · ☕ Weniger als ein Kaffee</p>
             </div>
 
-            {/* Trial highlight */}
-            <div className="bg-green-50 border-b border-green-100 px-6 py-3 flex items-center gap-3">
-              <span className="text-xl">🎁</span>
-              <div>
-                <p className="text-sm font-bold text-green-800">7 Tage komplett kostenlos</p>
-                <p className="text-xs text-green-600">Karte wird erst nach der Testphase belastet</p>
-              </div>
-            </div>
-
-            {/* Features */}
-            <div className="px-6 py-5">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Was du bekommst</p>
-              <ul className="space-y-2.5">
+            {/* Features – compact */}
+            <div className="px-5 py-4">
+              <ul className="space-y-2">
                 {FEATURES.map(f => (
-                  <li key={f.text} className="flex items-start gap-3 text-sm text-gray-700">
-                    <span className="flex-shrink-0 mt-0.5">{f.icon}</span>
+                  <li key={f.text} className="flex items-center gap-2.5 text-sm text-gray-700">
+                    <span className="flex-shrink-0">{f.icon}</span>
                     {f.text}
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Price breakdown */}
-            <div className="mx-6 mb-5 bg-gray-50 rounded-2xl p-4 border border-gray-100">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-500">Heute</span>
+            {/* Price breakdown – compact */}
+            <div className="mx-5 mb-4 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 flex justify-between items-center">
+              <div className="text-sm">
+                <span className="text-gray-500">Heute </span>
                 <span className="font-bold text-green-600">Kostenlos</span>
-              </div>
-              <div className="flex justify-between text-sm mb-3">
-                <span className="text-gray-500">Ab dem 8. Tag</span>
-                <span className="font-semibold text-gray-900">2,99 € / Monat</span>
-              </div>
-              <div className="border-t border-gray-200 pt-3 flex justify-between text-xs text-gray-400">
-                <span>Monatlich kündbar · Keine Mindestlaufzeit</span>
+                <span className="text-gray-300 mx-2">·</span>
+                <span className="text-gray-500">Ab Tag 8 </span>
+                <span className="font-semibold text-gray-900">2,99 €</span>
               </div>
             </div>
 
             {/* CTA */}
-            <div className="px-6 pb-6">
+            <div className="px-5 pb-5">
               {error && (
-                <div className="bg-red-50 border border-red-100 text-red-600 rounded-xl px-4 py-3 mb-4 text-sm text-center">
+                <div className="bg-red-50 border border-red-100 text-red-600 rounded-xl px-4 py-3 mb-3 text-sm text-center">
                   ⚠️ {error}
                 </div>
               )}
@@ -150,9 +128,8 @@ export default function PaymentPage() {
                 ) : '7 Tage kostenlos starten →'}
               </button>
 
-              {/* Trust line */}
-              <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
-                <span className="text-xs text-gray-400 flex items-center gap-1">🔒 Stripe</span>
+              <div className="flex items-center justify-center gap-3 mt-2.5 flex-wrap">
+                <span className="text-xs text-gray-400">🔒 Stripe</span>
                 <span className="text-gray-200">·</span>
                 <span className="text-xs text-gray-400">Keine versteckten Kosten</span>
                 <span className="text-gray-200">·</span>

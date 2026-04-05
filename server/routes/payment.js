@@ -108,11 +108,13 @@ async function handleStripeEvent(event) {
       }).eq('id', userId);
 
       // Send welcome WhatsApp message
-      const { data: newUser } = await supabase
+      const { data: newUser, error: userFetchError } = await supabase
         .from('users')
         .select('phone, name, quiz_time')
         .eq('id', userId)
         .single();
+
+      console.log('[Checkout] userId:', userId, 'user:', newUser, 'error:', userFetchError);
 
       if (newUser?.phone) {
         const hour = newUser.quiz_time ? Math.floor(newUser.quiz_time / 60) : 9;
@@ -130,6 +132,7 @@ async function handleStripeEvent(event) {
           ? `Wir sehen uns heute um *${timeStr} Uhr*! 🧠`
           : `Deine erste Frage kommt morgen um *${timeStr} Uhr*. Bis dann! 🧠`;
 
+        console.log('[Checkout] Sending welcome WhatsApp to:', newUser.phone);
         await sendFeedback(newUser.phone,
           `🧠 Hey ${newUser.name || ''}, willkommen im Gehirnjogging Club!\n\nDu hast dir gerade etwas richtig Gutes gegönnt. 💪\n\nTäglich um *${timeStr} Uhr* bekommst du deine persönlichen Quiz-Fragen direkt hier auf WhatsApp.\n\nTipp: Uhrzeit, Themen und Schwierigkeit kannst du jederzeit anpassen 👉 gehirnjoggingclub.de/dashboard\n\n${closing}`
         );

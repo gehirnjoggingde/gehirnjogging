@@ -25,17 +25,12 @@ export default function PaymentPage() {
   const cancelled = searchParams.get('cancelled') === 'true';
   const user = getUser();
 
-  async function handleCheckout() {
-    setLoading(true);
-    setError('');
-    try {
-      window.gtag?.('event', 'begin_checkout', { currency: 'EUR', value: 2.99 });
-      const data = await api.post('/payment/create-checkout');
-      window.location.href = data.sessionUrl;
-    } catch (err) {
-      setError(err.response?.data?.error || 'Checkout konnte nicht gestartet werden. Bitte versuche es erneut.');
-      setLoading(false);
-    }
+  const PAYMENT_LINK = 'https://buy.stripe.com/eVq3cu4Xl9qU4RS0uwew801';
+
+  function handleCheckout() {
+    window.gtag?.('event', 'begin_checkout', { currency: 'EUR', value: 2.99 });
+    const email = user?.email ? `?prefilled_email=${encodeURIComponent(user.email)}` : '';
+    window.location.href = `${PAYMENT_LINK}${email}`;
   }
 
   return (

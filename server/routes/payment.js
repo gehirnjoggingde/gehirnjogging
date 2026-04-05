@@ -98,24 +98,34 @@ async function handleStripeEvent(event) {
 
   switch (event.type) {
     case 'checkout.session.completed': {
+      // Support both old (metadata.userId) and new (email) matching
       const userId = obj.metadata?.userId;
-      if (!userId) break;
+      const email = obj.customer_details?.email || obj.customer_email;
 
-      await supabase.from('users').update({
+      let userQuery = supabase.from('users').update({
         stripe_customer_id: obj.customer,
         stripe_subscription_id: obj.subscription,
         subscription_status: 'active',
         updated_at: new Date().toISOString(),
-      }).eq('id', userId);
+      });
+
+      if (userId) {
+        await userQuery.eq('id', userId);
+      } else if (email) {
+        await userQuery.eq('email', email);
+      } else {
+        console.error('[Checkout] No userId or email found in event');
+        break;
+      }
 
       // Send welcome WhatsApp message
-      const { data: newUser, error: userFetchError } = await supabase
-        .from('users')
-        .select('phone, name, quiz_time')
-        .eq('id', userId)
-        .single();
+      let userLookup = supabase.from('users').select('phone, name, quiz_time');
+      if (userId) userLookup = userLookup.eq('id', userId);
+      else userLookup = userLookup.eq('email', email);
 
-      console.log('[Checkout] userId:', userId, 'user:', newUser, 'error:', userFetchError);
+      const { data: newUser, error: userFetchError } = await userLookup.single();
+
+      console.log('[Checkout] user:', newUser?.phone, 'error:', userFetchError?.message);
 
       if (newUser?.phone) {
         // quiz_time can be stored as "HH:MM" string or as integer minutes

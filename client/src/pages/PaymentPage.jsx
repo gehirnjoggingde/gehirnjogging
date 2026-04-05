@@ -65,9 +65,8 @@ export default function PaymentPage() {
 
           {/* Hero */}
           <div className="text-center mb-8">
-            <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-2">7 Tage kostenlos</p>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight mb-3">
-              Täglich klüger –<br />ohne Aufwand
+              Täglich klüger
             </h1>
             <p className="text-gray-500 text-sm">
               {user?.name ? `Hey ${user.name.split(' ')[0]}, du` : 'Du'} bist einen Schritt davon entfernt, dein
@@ -80,8 +79,9 @@ export default function PaymentPage() {
 
             {/* Trial highlight – primary focus */}
             <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-5 text-white text-center">
-              <p className="text-3xl font-extrabold mb-0.5">7 Tage kostenlos</p>
-              <p className="text-white/80 text-sm">Danach nur 2,99 € / Monat · ☕ Weniger als ein Kaffee</p>
+              <p className="text-3xl font-extrabold mb-1">7 Tage kostenlos</p>
+              <p className="text-white/80 text-sm">Danach nur 2,99 € / Monat</p>
+              <p className="text-white/70 text-xs mt-0.5">☕ Weniger als ein Kaffee im Monat</p>
             </div>
 
             {/* Features – compact */}
@@ -97,13 +97,14 @@ export default function PaymentPage() {
             </div>
 
             {/* Price breakdown – compact */}
-            <div className="mx-5 mb-4 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 flex justify-between items-center">
-              <div className="text-sm">
-                <span className="text-gray-500">Heute </span>
+            <div className="mx-5 mb-4 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+              <div className="flex justify-between items-center text-sm mb-1.5">
+                <span className="text-gray-500">Heute</span>
                 <span className="font-bold text-green-600">Kostenlos</span>
-                <span className="text-gray-300 mx-2">·</span>
-                <span className="text-gray-500">Ab Tag 8 </span>
-                <span className="font-semibold text-gray-900">2,99 €</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Ab Tag 8</span>
+                <span className="font-semibold text-gray-900">2,99 € / Monat</span>
               </div>
             </div>
 

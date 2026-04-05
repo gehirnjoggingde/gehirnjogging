@@ -117,8 +117,14 @@ async function handleStripeEvent(event) {
       console.log('[Checkout] userId:', userId, 'user:', newUser, 'error:', userFetchError);
 
       if (newUser?.phone) {
-        const hour = newUser.quiz_time ? Math.floor(newUser.quiz_time / 60) : 9;
-        const minute = newUser.quiz_time ? newUser.quiz_time % 60 : 0;
+        // quiz_time can be stored as "HH:MM" string or as integer minutes
+        let hour = 9, minute = 0;
+        if (typeof newUser.quiz_time === 'string' && newUser.quiz_time.includes(':')) {
+          [hour, minute] = newUser.quiz_time.split(':').map(Number);
+        } else if (typeof newUser.quiz_time === 'number') {
+          hour = Math.floor(newUser.quiz_time / 60);
+          minute = newUser.quiz_time % 60;
+        }
         const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 
         // Check if quiz time is still today (Berlin time)
@@ -126,16 +132,21 @@ async function handleStripeEvent(event) {
         const nowDate = new Date(nowBerlin);
         const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
         const quizMinutes = hour * 60 + minute;
-        const isToday = quizMinutes > currentMinutes + 10; // at least 10min from now
+        const isToday = quizMinutes > currentMinutes + 10;
 
         const closing = isToday
           ? `Wir sehen uns heute um *${timeStr} Uhr*! 🧠`
           : `Deine erste Frage kommt morgen um *${timeStr} Uhr*. Bis dann! 🧠`;
 
-        console.log('[Checkout] Sending welcome WhatsApp to:', newUser.phone);
-        await sendFeedback(newUser.phone,
-          `🧠 Hey ${newUser.name || ''}, willkommen im Gehirnjogging Club!\n\nDu hast dir gerade etwas richtig Gutes gegönnt. 💪\n\nTäglich um *${timeStr} Uhr* bekommst du deine persönlichen Quiz-Fragen direkt hier auf WhatsApp.\n\nTipp: Uhrzeit, Themen und Schwierigkeit kannst du jederzeit anpassen 👉 gehirnjoggingclub.de/dashboard\n\n${closing}`
-        );
+        try {
+          console.log('[Checkout] Sending welcome WhatsApp to:', newUser.phone);
+          await sendFeedback(newUser.phone,
+            `🧠 Hey ${newUser.name || ''}, willkommen im Gehirnjogging Club!\n\nDu hast dir gerade etwas richtig Gutes gegönnt. 💪\n\nTäglich um *${timeStr} Uhr* bekommst du deine persönlichen Quiz-Fragen direkt hier auf WhatsApp.\n\nTipp: Uhrzeit, Themen und Schwierigkeit kannst du jederzeit anpassen 👉 gehirnjoggingclub.de/dashboard\n\n${closing}`
+          );
+          console.log('[Checkout] Welcome WhatsApp sent successfully');
+        } catch (waErr) {
+          console.error('[Checkout] WhatsApp send failed:', waErr.message);
+        }
       }
       break;
     }

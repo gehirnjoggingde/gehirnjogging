@@ -29,6 +29,7 @@ export default function PaymentPage() {
     setLoading(true);
     setError('');
     try {
+      window.gtag?.('event', 'begin_checkout', { currency: 'EUR', value: 2.99 });
       const data = await api.post('/payment/create-checkout');
       window.location.href = data.sessionUrl;
     } catch (err) {

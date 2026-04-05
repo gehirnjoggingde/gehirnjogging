@@ -57,6 +57,7 @@ export default function SignupPage({ mode = 'signup' }) {
         });
       }
       saveAuth(data.token, data.user);
+      if (!isLogin) window.gtag?.('event', 'sign_up', { method: 'email' });
       navigate(isLogin ? '/dashboard' : '/payment');
     } catch (err) {
       const msg = err.response?.data?.error || 'Etwas ist schiefgelaufen. Bitte versuche es erneut.';

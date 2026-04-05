@@ -2,6 +2,7 @@ const express = require('express');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const supabase = require('../services/supabaseClient');
 const authMiddleware = require('../middleware/auth');
+const { sendFeedback } = require('../services/twilioService');
 
 const router = express.Router();
 
@@ -105,6 +106,34 @@ async function handleStripeEvent(event) {
         subscription_status: 'active',
         updated_at: new Date().toISOString(),
       }).eq('id', userId);
+
+      // Send welcome WhatsApp message
+      const { data: newUser } = await supabase
+        .from('users')
+        .select('phone, name, quiz_time')
+        .eq('id', userId)
+        .single();
+
+      if (newUser?.phone) {
+        const hour = newUser.quiz_time ? Math.floor(newUser.quiz_time / 60) : 9;
+        const minute = newUser.quiz_time ? newUser.quiz_time % 60 : 0;
+        const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+        // Check if quiz time is still today (Berlin time)
+        const nowBerlin = new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' });
+        const nowDate = new Date(nowBerlin);
+        const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+        const quizMinutes = hour * 60 + minute;
+        const isToday = quizMinutes > currentMinutes + 10; // at least 10min from now
+
+        const closing = isToday
+          ? `Wir sehen uns heute um *${timeStr} Uhr*! 🧠`
+          : `Deine erste Frage kommt morgen um *${timeStr} Uhr*. Bis dann! 🧠`;
+
+        await sendFeedback(newUser.phone,
+          `🧠 Hey ${newUser.name || ''}, willkommen im Gehirnjogging Club!\n\nDu hast dir gerade etwas richtig Gutes gegönnt. 💪\n\nTäglich um *${timeStr} Uhr* bekommst du deine persönlichen Quiz-Fragen direkt hier auf WhatsApp.\n\nTipp: Uhrzeit, Themen und Schwierigkeit kannst du jederzeit anpassen 👉 gehirnjoggingclub.de/dashboard\n\n${closing}`
+        );
+      }
       break;
     }
 

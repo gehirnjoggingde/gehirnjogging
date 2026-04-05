@@ -62,11 +62,26 @@ router.post('/twilio', async (req, res) => {
   const sentRecord = sentRecords?.[0] || null;
   const totalSentToday = await getTotalSentToday(user.id, today);
 
-  // ── 3. No pending question → all done for today ───────────
+  // ── 3. No pending question ────────────────────────────────
   if (!sentRecord) {
-    await sendFeedback(phoneNumber,
-      `🎉 Du hast heute schon alle deine Fragen gemeistert – Respekt!\n\nKomm morgen wieder für frische Fragen. Dein Gehirn wird es dir danken. 🧠💪\n\n📱 Mehr oder weniger Fragen, andere Kategorien oder eine andere Uhrzeit?\nPasse alles bequem im Dashboard an:\n👉 gehirnjoggingclub.de/dashboard`
-    );
+    // Check if user has EVER received a question.
+    // If not, they may have just replied to the welcome message before
+    // their first question was sent → give them a neutral response instead
+    // of the confusing "all done" message.
+    const { count: everReceived } = await supabase
+      .from('user_answers')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    if (!everReceived || everReceived === 0) {
+      await sendFeedback(phoneNumber,
+        `🧠 Deine erste Quiz-Frage ist schon unterwegs!\n\nBis gleich! 💪`
+      );
+    } else {
+      await sendFeedback(phoneNumber,
+        `🎉 Du hast heute schon alle deine Fragen gemeistert – Respekt!\n\nKomm morgen wieder für frische Fragen. Dein Gehirn wird es dir danken. 🧠💪\n\n📱 Mehr oder weniger Fragen, andere Kategorien oder eine andere Uhrzeit?\nPasse alles bequem im Dashboard an:\n👉 gehirnjoggingclub.de/dashboard`
+      );
+    }
     return res.type('text/xml').send('<Response></Response>');
   }
 

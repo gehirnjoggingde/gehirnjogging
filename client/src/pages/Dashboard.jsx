@@ -18,23 +18,16 @@ const CATEGORIES = [
   { id: 'kultur',          label: 'Kultur & Medien',  icon: '🎬' },
 ];
 
-const DIFFICULTY_LABELS = {
-  1: 'Leicht',
-  2: 'Mittel',
-  3: 'Schwer',
-};
-
-const QUESTION_LABELS = {
-  1: 'Entspannt', 2: 'Locker', 3: 'Aktiv', 4: 'Intensiv', 5: 'Maximum',
-};
+const DIFFICULTY_LABELS = { 1: 'Leicht', 2: 'Mittel', 3: 'Schwer' };
+const QUESTION_LABELS   = { 1: 'Entspannt', 2: 'Locker', 3: 'Aktiv', 4: 'Intensiv', 5: 'Maximum' };
 
 /* ── Subcomponents ───────────────────────────────────────── */
 function StatBadge({ value, label, icon }) {
   return (
-    <div className="flex flex-col items-center bg-white/10 backdrop-blur rounded-2xl px-4 py-3 flex-1 min-w-0">
-      <span className="text-lg mb-0.5">{icon}</span>
-      <span className="text-xl font-extrabold text-white leading-none">{value}</span>
-      <span className="text-xs text-white/55 mt-1 text-center leading-tight">{label}</span>
+    <div className="flex flex-col items-center bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl px-3 py-3.5 flex-1 min-w-0">
+      <span className="text-xl mb-1 leading-none">{icon}</span>
+      <span className="text-2xl font-extrabold text-white leading-none tracking-tight">{value}</span>
+      <span className="text-[11px] text-white/50 mt-1.5 text-center leading-tight font-medium">{label}</span>
     </div>
   );
 }
@@ -64,7 +57,7 @@ function SliderInput({ label, value, min, max, onChange, displayValue }) {
 
 function SectionLabel({ children }) {
   return (
-    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{children}</p>
+    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">{children}</p>
   );
 }
 
@@ -151,33 +144,21 @@ export default function Dashboard() {
 
   function handleCopyReferral() {
     const link = `https://gehirnjoggingclub.de/`;
-
-    function onSuccess() {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
-
+    function onSuccess() { setCopied(true); setTimeout(() => setCopied(false), 2500); }
     function fallbackCopy() {
       try {
         const ta = document.createElement('textarea');
         ta.value = link;
         ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
+        document.body.appendChild(ta); ta.focus(); ta.select();
         const ok = document.execCommand('copy');
         document.body.removeChild(ta);
         if (ok) { onSuccess(); } else { showToast('Link: ' + link); }
-      } catch {
-        showToast('Link: ' + link);
-      }
+      } catch { showToast('Link: ' + link); }
     }
-
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(link).then(onSuccess).catch(fallbackCopy);
-    } else {
-      fallbackCopy();
-    }
+    } else { fallbackCopy(); }
   }
 
   if (loading) return (
@@ -217,224 +198,222 @@ export default function Dashboard() {
 
       {/* ── Hero ──────────────────────────────────────────── */}
       <div className="bg-gradient-to-br from-navy-950 via-navy-900 to-brand-900">
-        <div className="max-w-5xl mx-auto px-4 pt-8 pb-8">
+        <div className="max-w-5xl mx-auto px-4 pt-7 pb-7">
 
           {isPaid && (
-            <div className="bg-white/10 border border-white/20 rounded-2xl p-4 mb-6 flex items-center gap-3">
+            <div className="bg-white/10 border border-white/20 rounded-2xl p-4 mb-5 flex items-center gap-3">
               <span className="text-2xl">🎉</span>
               <div>
-                <p className="font-bold text-white">Willkommen bei Gehirnjogging!</p>
-                <p className="text-sm text-white/65">Dein erstes Quiz kommt um {user?.quiz_time} Uhr auf WhatsApp.</p>
+                <p className="font-bold text-white text-sm">Willkommen bei Gehirnjogging!</p>
+                <p className="text-xs text-white/65 mt-0.5">Dein erstes Quiz kommt um {user?.quiz_time} Uhr auf WhatsApp.</p>
               </div>
             </div>
           )}
 
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center text-xl font-bold text-white shadow-lg flex-shrink-0 select-none">
+          {/* Name + Avatar */}
+          <div className="flex items-center gap-3.5 mb-5">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center text-base font-bold text-white shadow-lg flex-shrink-0 select-none">
               {initials}
             </div>
             <div>
-              <p className="text-white/50 text-xs font-medium tracking-wide">Willkommen zurück</p>
-              <h1 className="text-2xl font-extrabold text-white leading-tight">
+              <p className="text-white/45 text-[11px] font-semibold tracking-wide uppercase">Willkommen zurück</p>
+              <h1 className="text-xl font-extrabold text-white leading-tight">
                 {firstName} 👋
               </h1>
-              <p className="text-white/50 text-xs mt-0.5">
-                {user?.is_paused
-                  ? '⏸ Quiz pausiert'
-                  : `Nächstes Quiz um ${user?.quiz_time} Uhr`}
+              <p className={`text-[11px] mt-0.5 font-medium ${user?.is_paused ? 'text-amber-300/80' : 'text-white/45'}`}>
+                {user?.is_paused ? '⏸ Quiz pausiert' : `Nächstes Quiz um ${user?.quiz_time} Uhr`}
               </p>
             </div>
           </div>
 
+          {/* Stats */}
           {stats && (
-            <div className="flex gap-3">
-              <StatBadge icon="🔥" value={stats.streak} label="Tage Streak" />
-              <StatBadge icon="✅" value={stats.correct} label="Richtig" />
-              <StatBadge icon="🎯" value={`${stats.accuracy}%`} label="Genauigkeit" />
+            <div className="flex gap-2.5">
+              <StatBadge icon="🔥" value={stats.streak}           label="Tage Streak" />
+              <StatBadge icon="✅" value={stats.correct}          label="Richtig" />
+              <StatBadge icon="🎯" value={`${stats.accuracy}%`}  label="Genauigkeit" />
             </div>
           )}
         </div>
       </div>
 
       {/* ── Main Content ──────────────────────────────────── */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6 lg:py-8">
-        {/*
-          Mobile order:  Uhrzeit → Kategorien → Intensität → Speichern → So funktionierts → Einladungslink → Abonnement
-          Desktop order: Left col (Uhrzeit, So funktionierts, Einladungslink) | Right col (Kategorien, Intensität, Speichern, Abonnement)
-          Achieved via CSS grid row/col assignments on lg breakpoint.
-        */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 items-start">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-5 lg:py-7 space-y-4">
 
-          {/* 1 · Quiz Time — left col, row 1 */}
-          <div className="lg:col-start-1 lg:row-start-1 bg-white rounded-2xl border border-gray-100 shadow-card p-5">
-            <SectionLabel>Quiz-Uhrzeit</SectionLabel>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-3xl font-extrabold text-gray-900 leading-none">{user?.quiz_time} Uhr</p>
-                <p className="text-sm text-gray-400 mt-1.5">
-                  {user?.daily_question_count > 1
-                    ? `${user.daily_question_count} Fragen täglich · auf WhatsApp`
-                    : '1 Frage täglich · auf WhatsApp'}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowTimePicker(true)}
-                className="btn-secondary text-sm py-2 px-4 flex-shrink-0"
-              >
-                Ändern
-              </button>
+        {/* ① Quiz-Uhrzeit — full width */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+          <SectionLabel>Quiz-Uhrzeit</SectionLabel>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-3xl font-extrabold text-gray-900 leading-none tracking-tight">{user?.quiz_time} Uhr</p>
+              <p className="text-sm text-gray-400 mt-1.5">
+                {user?.daily_question_count > 1
+                  ? `${user.daily_question_count} Fragen täglich · auf WhatsApp`
+                  : '1 Frage täglich · auf WhatsApp'}
+              </p>
             </div>
-          </div>
-
-          {/* 2 · Categories — right col, row 1 */}
-          <div className="lg:col-start-2 lg:row-start-1 bg-white rounded-2xl border border-gray-100 shadow-card p-5">
-            <SectionLabel>Themenkategorien</SectionLabel>
-            <p className="text-xs text-gray-400 mb-3 -mt-1">Mehrere wählbar – mindestens eine.</p>
-            <div className="grid grid-cols-2 gap-2">
-              {CATEGORIES.map(cat => {
-                const active = settingsForm.preferred_categories.includes(cat.id);
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => toggleCategory(cat.id)}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border-2 text-sm font-medium transition-all active:scale-[.97] text-left ${
-                      active
-                        ? 'border-brand-500 bg-brand-50 text-brand-700'
-                        : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="text-base flex-shrink-0">{cat.icon}</span>
-                    <span className="text-xs leading-tight truncate">{cat.label}</span>
-                    {active && (
-                      <span className="ml-auto w-4 h-4 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 8">
-                          <path d="M1 4l2.5 2.5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 3 · Sliders — right col, row 2 */}
-          <div className="lg:col-start-2 lg:row-start-2 bg-white rounded-2xl border border-gray-100 shadow-card p-5 space-y-5">
-            <SectionLabel>Quiz-Intensität</SectionLabel>
-
-            <SliderInput
-              label="Fragen pro Tag"
-              value={settingsForm.daily_question_count}
-              min={1} max={5}
-              onChange={v => setSettingsForm(p => ({ ...p, daily_question_count: v }))}
-              displayValue={`${settingsForm.daily_question_count} · ${QUESTION_LABELS[settingsForm.daily_question_count]}`}
-            />
-
-            <div className="border-t border-gray-50" />
-
-            <SliderInput
-              label="Schwierigkeitsgrad"
-              value={settingsForm.difficulty_level}
-              min={1} max={3}
-              onChange={v => setSettingsForm(p => ({ ...p, difficulty_level: v }))}
-              displayValue={`${DIFFICULTY_LABELS[settingsForm.difficulty_level]}`}
-            />
-          </div>
-
-          {/* 4 · Save — right col, row 3 */}
-          <button
-            onClick={saveSettings}
-            disabled={saving}
-            className="lg:col-start-2 lg:row-start-3 btn-primary w-full py-3.5 text-sm"
-          >
-            {saving ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                Wird gespeichert…
-              </span>
-            ) : 'Einstellungen speichern'}
-          </button>
-
-          {/* 5 · How to answer — left col, row 2 */}
-          <div className="lg:col-start-1 lg:row-start-2 bg-white rounded-2xl border border-gray-100 shadow-card p-5">
-            <SectionLabel>So funktioniert's</SectionLabel>
-            <div className="space-y-3">
-              {[
-                { step: '1', text: 'Du bekommst täglich eine Frage per WhatsApp.' },
-                { step: '2', text: 'Antworte mit 1, 2, 3 oder 4 auf die Antwortmöglichkeit.' },
-                { step: '3', text: 'Du erhältst sofort Feedback mit Erklärung.' },
-              ].map(({ step, text }) => (
-                <div key={step} className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                    {step}
-                  </span>
-                  <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 6 · Freunde einladen — left col, row 3 */}
-          <div className="lg:col-start-1 lg:row-start-3 bg-gradient-to-br from-brand-600 to-brand-800 rounded-2xl p-5 text-white shadow-glow">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1">Freunde einladen</p>
-                <h3 className="text-lg font-extrabold leading-snug mb-1">
-                  Teile Gehirnjogging 🧠
-                </h3>
-                <p className="text-sm text-white/70 leading-relaxed">
-                  Schick deinen Freunden deinen persönlichen Link und macht gemeinsam schlauer.
-                </p>
-              </div>
-              <span className="text-4xl select-none flex-shrink-0">🎁</span>
-            </div>
-            <button
-              onClick={handleCopyReferral}
-              className={`mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[.97] ${
-                copied
-                  ? 'bg-green-500 text-white'
-                  : 'bg-white/15 hover:bg-white/25 text-white border border-white/20'
-              }`}
-            >
-              {copied ? '✓ Link kopiert!' : '🔗 Einladungslink kopieren'}
+            <button onClick={() => setShowTimePicker(true)} className="btn-secondary text-sm py-2 px-4 flex-shrink-0">
+              Ändern
             </button>
           </div>
+        </div>
 
-          {/* 7 · Subscription — right col, row 4 */}
-          <div className="lg:col-start-2 lg:row-start-4 bg-white rounded-2xl border border-gray-100 shadow-card p-5">
-            <SectionLabel>Abonnement</SectionLabel>
-            <div className="flex items-center gap-2 mb-4">
-              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                user?.subscription_status === 'active' ? 'bg-green-500' :
-                user?.subscription_status === 'paused' ? 'bg-amber-400' : 'bg-red-400'
-              }`} />
-              <span className="text-sm font-semibold text-gray-800">
-                {user?.subscription_status === 'active' ? 'Aktiv' :
-                 user?.subscription_status === 'paused' ? 'Pausiert' : 'Inaktiv'}
-              </span>
-              {user?.subscription_status === 'active' && (
-                <span className="text-xs text-gray-400">· 2,99 €/Monat</span>
-              )}
+        {/* ② Zwei-Spalten — unabhängige Flex-Columns */}
+        <div className="flex flex-col lg:flex-row gap-4 items-start">
+
+          {/* Rechte Spalte — Mobile: zuerst (Haupteinstellungen) */}
+          <div className="w-full lg:w-[360px] flex flex-col gap-4 order-1 lg:order-2 flex-shrink-0">
+
+            {/* Kategorien */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <SectionLabel>Themenkategorien</SectionLabel>
+              <p className="text-xs text-gray-400 mb-3 -mt-1">Mehrere wählbar – mindestens eine.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {CATEGORIES.map(cat => {
+                  const active = settingsForm.preferred_categories.includes(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => toggleCategory(cat.id)}
+                      className={`flex items-center gap-2 p-2.5 rounded-xl border-2 text-sm font-medium transition-all active:scale-[.97] text-left ${
+                        active
+                          ? 'border-brand-500 bg-brand-50 text-brand-700'
+                          : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <span className="text-base flex-shrink-0">{cat.icon}</span>
+                      <span className="text-xs leading-tight truncate">{cat.label}</span>
+                      {active && (
+                        <span className="ml-auto w-4 h-4 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 8">
+                            <path d="M1 4l2.5 2.5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="space-y-2">
+            {/* Intensität */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5 space-y-5">
+              <SectionLabel>Quiz-Intensität</SectionLabel>
+              <SliderInput
+                label="Fragen pro Tag"
+                value={settingsForm.daily_question_count}
+                min={1} max={5}
+                onChange={v => setSettingsForm(p => ({ ...p, daily_question_count: v }))}
+                displayValue={`${settingsForm.daily_question_count} · ${QUESTION_LABELS[settingsForm.daily_question_count]}`}
+              />
+              <div className="border-t border-gray-50" />
+              <SliderInput
+                label="Schwierigkeitsgrad"
+                value={settingsForm.difficulty_level}
+                min={1} max={3}
+                onChange={v => setSettingsForm(p => ({ ...p, difficulty_level: v }))}
+                displayValue={DIFFICULTY_LABELS[settingsForm.difficulty_level]}
+              />
+            </div>
+
+            {/* Speichern */}
+            <button onClick={saveSettings} disabled={saving} className="btn-primary w-full py-3.5 text-sm">
+              {saving ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Wird gespeichert…
+                </span>
+              ) : 'Einstellungen speichern'}
+            </button>
+
+            {/* Abonnement */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <SectionLabel>Abonnement</SectionLabel>
+              <div className="flex items-center gap-2 mb-4">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  user?.subscription_status === 'active' ? 'bg-green-500' :
+                  user?.subscription_status === 'paused' ? 'bg-amber-400' : 'bg-red-400'
+                }`} />
+                <span className="text-sm font-semibold text-gray-800">
+                  {user?.subscription_status === 'active' ? 'Aktiv' :
+                   user?.subscription_status === 'paused' ? 'Pausiert' : 'Inaktiv'}
+                </span>
+                {user?.subscription_status === 'active' && (
+                  <span className="text-xs text-gray-400 ml-0.5">· 2,99 €/Monat</span>
+                )}
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={handlePauseToggle}
+                  className={`w-full py-2.5 rounded-xl text-sm font-semibold border transition-all active:scale-[.97] ${
+                    user?.is_paused
+                      ? 'bg-brand-600 text-white border-brand-600 hover:bg-brand-700'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {user?.is_paused ? '▶ Quiz fortsetzen' : '⏸ Quiz pausieren'}
+                </button>
+                <Link
+                  to="/settings"
+                  className="flex items-center justify-center gap-1 w-full py-2 text-sm text-gray-400 hover:text-brand-600 font-medium transition-colors"
+                >
+                  Kündigen & weitere Optionen →
+                </Link>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Linke Spalte — Mobile: danach (Info-Karten) */}
+          <div className="w-full lg:flex-1 flex flex-col gap-4 order-2 lg:order-1">
+
+            {/* So funktioniert's — mobile als horizontale Pill-Liste */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <SectionLabel>So funktioniert's</SectionLabel>
+              <div className="space-y-3.5">
+                {[
+                  { step: '1', icon: '📲', text: 'Du bekommst täglich eine Frage per WhatsApp.' },
+                  { step: '2', icon: '✍️', text: 'Antworte mit 1, 2, 3 oder 4 auf die Antwortmöglichkeit.' },
+                  { step: '3', icon: '💡', text: 'Du erhältst sofort Feedback mit Erklärung.' },
+                ].map(({ step, icon, text }) => (
+                  <div key={step} className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-xl bg-brand-50 border border-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {step}
+                    </div>
+                    <p className="text-sm text-gray-600 leading-relaxed pt-1">{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Freunde einladen */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-800 rounded-2xl p-5 text-white shadow-glow">
+              {/* Subtile Deko-Kreise */}
+              <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/5" />
+              <div className="absolute -bottom-8 -left-4 w-24 h-24 rounded-full bg-white/5" />
+
+              <div className="relative flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold text-white/55 uppercase tracking-widest mb-1.5">Freunde einladen</p>
+                  <h3 className="text-lg font-extrabold leading-snug mb-1.5">Teile Gehirnjogging 🧠</h3>
+                  <p className="text-sm text-white/65 leading-relaxed">
+                    Schick deinen Freunden deinen persönlichen Link und macht gemeinsam schlauer.
+                  </p>
+                </div>
+                <span className="text-4xl select-none flex-shrink-0 mt-0.5">🎁</span>
+              </div>
               <button
-                onClick={handlePauseToggle}
-                className={`w-full py-2.5 rounded-xl text-sm font-semibold border transition-all active:scale-[.97] ${
-                  user?.is_paused
-                    ? 'bg-brand-600 text-white border-brand-600 hover:bg-brand-700'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                onClick={handleCopyReferral}
+                className={`relative mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[.97] ${
+                  copied
+                    ? 'bg-green-500 text-white shadow-sm'
+                    : 'bg-white/15 hover:bg-white/25 text-white border border-white/20'
                 }`}
               >
-                {user?.is_paused ? '▶ Quiz fortsetzen' : '⏸ Quiz pausieren'}
+                {copied ? '✓ Link kopiert!' : '🔗 Einladungslink kopieren'}
               </button>
-              <Link
-                to="/settings"
-                className="flex items-center justify-center gap-1 w-full py-2 text-sm text-gray-400 hover:text-brand-600 font-medium transition-colors"
-              >
-                Kündigen & weitere Optionen →
-              </Link>
             </div>
+
           </div>
 
         </div>

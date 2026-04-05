@@ -2,7 +2,8 @@ const express = require('express');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const supabase = require('../services/supabaseClient');
 const authMiddleware = require('../middleware/auth');
-const { sendWelcomeTemplate } = require('../services/twilioService');
+const { sendWelcomeTemplate, sendQuiz } = require('../services/twilioService');
+const { getQuestionsForUser } = require('../services/quizService');
 
 const router = express.Router();
 
@@ -138,24 +139,56 @@ async function handleStripeEvent(event) {
         }
         const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 
-        // Check if quiz time is still today (Berlin time)
+        // We always send the first question right after the welcome message.
+        // dayStr is only used in the welcome text – question always comes now.
         const nowBerlin = new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' });
         const nowDate = new Date(nowBerlin);
         const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
         const quizMinutes = hour * 60 + minute;
         const isToday = quizMinutes > currentMinutes + 10;
-
-        const closing = isToday
-          ? `Wir sehen uns heute um *${timeStr} Uhr*! 🧠`
-          : `Deine erste Frage kommt morgen um *${timeStr} Uhr*. Bis dann! 🧠`;
+        const dayStr = isToday ? 'heute' : 'morgen';
 
         try {
           console.log('[Checkout] Sending welcome WhatsApp to:', newUser.phone);
-          const dayStr = isToday ? 'heute' : 'morgen';
           await sendWelcomeTemplate(newUser.phone, newUser.name?.split(' ')[0] || 'du', dayStr, timeStr);
           console.log('[Checkout] Welcome WhatsApp sent successfully');
         } catch (waErr) {
           console.error('[Checkout] WhatsApp send failed:', waErr.message);
+        }
+
+        // Re-fetch user with full settings so we can get a question for them
+        const { data: fullUser } = await supabase
+          .from('users')
+          .select('id, name, phone, daily_question_count, difficulty_level, preferred_categories')
+          .eq('phone', newUser.phone)
+          .single();
+
+        if (fullUser) {
+          try {
+            // Small delay so welcome message arrives first
+            await sleep(3000);
+
+            const questions = await getQuestionsForUser(fullUser, fullUser.daily_question_count || 1);
+            if (questions.length > 0) {
+              // Pre-insert all questions as pending (same as cron does)
+              for (const q of questions) {
+                await supabase.from('user_answers').insert({
+                  user_id: fullUser.id,
+                  question_id: q.id,
+                  user_answer: null,
+                  is_correct: false,
+                  answered_at: new Date().toISOString(),
+                });
+                await sleep(50);
+              }
+
+              // Send first question immediately (we're within welcome template's 24h window)
+              await sendQuiz(fullUser.phone, questions[0], 1, questions.length);
+              console.log(`[Checkout] First quiz question sent to ${fullUser.phone}`);
+            }
+          } catch (qErr) {
+            console.error('[Checkout] Failed to send first question:', qErr.message);
+          }
         }
       }
       break;
@@ -192,6 +225,8 @@ async function handleStripeEvent(event) {
     }
   }
 }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function mapStripeStatus(stripeStatus) {
   const map = {

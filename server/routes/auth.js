@@ -207,9 +207,9 @@ router.post('/google', async (req, res) => {
     const googleRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
     const payload = await googleRes.json();
 
-    if (payload.error) return res.status(401).json({ error: 'Ungültiger Google-Token' });
+    if (payload.error) return res.status(400).json({ error: 'Ungültiger Google-Token' });
     if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
-      return res.status(401).json({ error: 'Token-Audience ungültig' });
+      return res.status(400).json({ error: 'Google nicht konfiguriert' });
     }
 
     const email = payload.email?.toLowerCase();
@@ -247,7 +247,7 @@ router.post('/google/complete', async (req, res) => {
     const payload = await googleRes.json();
 
     if (payload.error || payload.aud !== process.env.GOOGLE_CLIENT_ID) {
-      return res.status(401).json({ error: 'Ungültiger Token' });
+      return res.status(400).json({ error: 'Ungültiger Token' });
     }
 
     const email = payload.email?.toLowerCase();

@@ -197,4 +197,97 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// POST /api/auth/google
+// Body: { credential } – Google ID token from GSI
+router.post('/google', async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ error: 'Kein Token erhalten' });
+
+  try {
+    const googleRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+    const payload = await googleRes.json();
+
+    if (payload.error) return res.status(401).json({ error: 'Ungültiger Google-Token' });
+    if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
+      return res.status(401).json({ error: 'Token-Audience ungültig' });
+    }
+
+    const email = payload.email?.toLowerCase();
+    const name  = payload.name || '';
+
+    // Check if user exists
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, email, name, phone, quiz_time, is_paused, subscription_status')
+      .eq('email', email)
+      .single();
+
+    if (user) {
+      // Existing user → login directly
+      const token = signToken(user.id);
+      return res.json({ token, user });
+    }
+
+    // New user → frontend needs to collect phone number
+    return res.json({ needsPhone: true, email, name });
+  } catch (err) {
+    console.error('[GoogleAuth]', err);
+    return res.status(500).json({ error: 'Fehler bei der Google-Anmeldung' });
+  }
+});
+
+// POST /api/auth/google/complete
+// Body: { credential, phone } – complete signup for new Google users
+router.post('/google/complete', async (req, res) => {
+  const { credential, phone } = req.body;
+  if (!credential || !phone) return res.status(400).json({ error: 'Fehlende Daten' });
+
+  try {
+    const googleRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+    const payload = await googleRes.json();
+
+    if (payload.error || payload.aud !== process.env.GOOGLE_CLIENT_ID) {
+      return res.status(401).json({ error: 'Ungültiger Token' });
+    }
+
+    const email = payload.email?.toLowerCase();
+    const name  = payload.name || email.split('@')[0];
+
+    let formattedPhone = phone.trim().replace(/\s/g, '');
+    if (formattedPhone.startsWith('00')) formattedPhone = '+' + formattedPhone.slice(2);
+    if (formattedPhone.startsWith('0') && !formattedPhone.startsWith('+')) {
+      formattedPhone = '+49' + formattedPhone.slice(1);
+    }
+
+    // Random password hash (Google users won't use password login)
+    const randomPw = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .insert({
+        email,
+        name,
+        phone: formattedPhone,
+        password_hash: randomPw,
+        subscription_status: 'pending',
+      })
+      .select('id, email, name, phone')
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        const field = error.message.includes('email') ? 'E-Mail' : 'Telefonnummer';
+        return res.status(409).json({ error: `${field} bereits registriert` });
+      }
+      throw error;
+    }
+
+    const token = signToken(user.id);
+    return res.status(201).json({ token, user });
+  } catch (err) {
+    console.error('[GoogleComplete]', err);
+    return res.status(500).json({ error: 'Registrierung fehlgeschlagen' });
+  }
+});
+
 module.exports = router;

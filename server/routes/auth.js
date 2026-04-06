@@ -208,8 +208,16 @@ router.post('/google', async (req, res) => {
     const payload = await googleRes.json();
 
     if (payload.error) return res.status(400).json({ error: 'Ungültiger Google-Token' });
-    if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
+
+    const expectedId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+    const tokenAud   = Array.isArray(payload.aud) ? payload.aud[0] : (payload.aud || '');
+    if (!expectedId) {
+      console.error('[GoogleAuth] GOOGLE_CLIENT_ID not set');
       return res.status(400).json({ error: 'Google nicht konfiguriert' });
+    }
+    if (tokenAud !== expectedId) {
+      console.error('[GoogleAuth] aud mismatch – token:', tokenAud, '| env:', expectedId);
+      return res.status(400).json({ error: 'Token ungültig' });
     }
 
     const email = payload.email?.toLowerCase();
@@ -246,7 +254,9 @@ router.post('/google/complete', async (req, res) => {
     const googleRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
     const payload = await googleRes.json();
 
-    if (payload.error || payload.aud !== process.env.GOOGLE_CLIENT_ID) {
+    const expectedId2 = (process.env.GOOGLE_CLIENT_ID || '').trim();
+    const tokenAud2   = Array.isArray(payload.aud) ? payload.aud[0] : (payload.aud || '');
+    if (payload.error || tokenAud2 !== expectedId2) {
       return res.status(400).json({ error: 'Ungültiger Token' });
     }
 

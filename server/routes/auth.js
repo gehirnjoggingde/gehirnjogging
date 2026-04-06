@@ -2,10 +2,16 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 const supabase = require('../services/supabaseClient');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 
 const router = express.Router();
 
@@ -130,8 +136,8 @@ router.post('/forgot-password', async (req, res) => {
 
     const resetUrl = `${process.env.FRONTEND_URL || 'https://gehirnjoggingclub.de'}/reset-password?token=${token}`;
 
-    await resend.emails.send({
-      from: 'Gehirnjogging <noreply@gehirnjoggingclub.de>',
+    await transporter.sendMail({
+      from: `"Gehirnjogging" <${process.env.GMAIL_USER}>`,
       to: user.email,
       subject: 'Passwort zurücksetzen – Gehirnjogging',
       html: `

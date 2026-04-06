@@ -182,9 +182,10 @@ async function handleStripeEvent(event) {
                 await sleep(50);
               }
 
-              // Send first question immediately (we're within welcome template's 24h window)
-              await sendQuiz(fullUser.phone, questions[0], 1, questions.length);
-              console.log(`[Checkout] First quiz question sent to ${fullUser.phone}`);
+              // Q1 wird NICHT sofort gesendet — der User muss erst auf die
+              // Welcome-Nachricht antworten (z.B. "Los geht's!"), dann schickt
+              // der Webhook automatisch die erste Frage.
+              console.log(`[Checkout] ${questions.length} question(s) queued for ${fullUser.phone}, waiting for user reply`);
             }
           } catch (qErr) {
             console.error('[Checkout] Failed to send first question:', qErr.message);

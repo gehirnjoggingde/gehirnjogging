@@ -2,16 +2,28 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const supabase = require('../services/supabaseClient');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+async function sendEmail({ to, subject, html }) {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: 'Gehirnjogging', email: 'gehirnjoggingkanal@gmail.com' },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo error: ${err}`);
+  }
+}
 
 const router = express.Router();
 
@@ -136,8 +148,7 @@ router.post('/forgot-password', async (req, res) => {
 
     const resetUrl = `${process.env.FRONTEND_URL || 'https://gehirnjoggingclub.de'}/reset-password?token=${token}`;
 
-    await transporter.sendMail({
-      from: `"Gehirnjogging" <${process.env.GMAIL_USER}>`,
+    await sendEmail({
       to: user.email,
       subject: 'Passwort zurücksetzen – Gehirnjogging',
       html: `
@@ -170,7 +181,7 @@ router.post('/forgot-password', async (req, res) => {
 
     return res.json({ message: 'Falls diese E-Mail existiert, wurde ein Link gesendet.' });
   } catch (err) {
-    console.error('[ForgotPassword]', err);
+    console.error('[ForgotPassword]', err.message || err);
     return res.status(500).json({ error: 'Fehler beim Senden der E-Mail' });
   }
 });

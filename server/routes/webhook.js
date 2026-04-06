@@ -85,35 +85,33 @@ router.post('/twilio', async (req, res) => {
     return res.type('text/xml').send('<Response></Response>');
   }
 
-  // ── 4. Erster Start: User hat noch nie eine Frage beantwortet ────
-  // → Jede Nachricht (z.B. "Los geht's!") löst Q1 aus
-  const { count: answeredCount } = await supabase
-    .from('user_answers')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .not('user_answer', 'is', null);
-
-  if (answeredCount === 0) {
-    const { data: firstQ } = await supabase
-      .from('quiz_questions')
-      .select('*')
-      .eq('id', sentRecord.question_id)
-      .single();
-
-    if (firstQ) {
-      await sendQuiz(phoneNumber, firstQ, 1, sentRecords?.length || 1);
-    }
-    return res.type('text/xml').send('<Response></Response>');
-  }
-
-  // ── 5. Validate answer ────────────────────────────────────
+  // ── 4. Validate answer ────────────────────────────────────
   const answerMap = { '1': 'a', '2': 'b', '3': 'c', '4': 'd' };
   const answer = answerMap[body];
 
   if (!answer) {
-    await sendFeedback(phoneNumber,
-      '❓ Bitte antworte mit *1*, *2*, *3* oder *4* auf die Quiz-Frage.'
-    );
+    // Kein gültiger Antwort-Code → prüfen ob User noch nie eine Frage beantwortet hat
+    // (z.B. hat gerade auf Welcome-Nachricht geantwortet) → Q1 senden
+    const { count: answeredCount } = await supabase
+      .from('user_answers')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .not('user_answer', 'is', null);
+
+    if (answeredCount === 0) {
+      const { data: firstQ } = await supabase
+        .from('quiz_questions')
+        .select('*')
+        .eq('id', sentRecord.question_id)
+        .single();
+      if (firstQ) {
+        await sendQuiz(phoneNumber, firstQ, 1, sentRecords?.length || 1);
+      }
+    } else {
+      await sendFeedback(phoneNumber,
+        '❓ Bitte antworte mit *1*, *2*, *3* oder *4* auf die Quiz-Frage.'
+      );
+    }
     return res.type('text/xml').send('<Response></Response>');
   }
 

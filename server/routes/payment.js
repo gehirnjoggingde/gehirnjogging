@@ -152,6 +152,12 @@ async function handleStripeEvent(event) {
           console.log('[Checkout] Sending welcome WhatsApp to:', newUser.phone);
           await sendWelcomeTemplate(newUser.phone, newUser.name?.split(' ')[0] || 'du', dayStr, timeStr);
           console.log('[Checkout] Welcome WhatsApp sent successfully');
+
+          // Dashboard-Link direkt nach der Willkommensnachricht senden
+          await sleep(1500);
+          await sendFeedback(newUser.phone,
+            `⚙️ Uhrzeit, Kategorien & Schwierigkeit kannst du jederzeit anpassen:\n👉 gehirnjoggingclub.de/dashboard`
+          );
         } catch (waErr) {
           console.error('[Checkout] WhatsApp send failed:', waErr.message);
         }

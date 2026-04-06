@@ -36,7 +36,9 @@ router.post('/register', async (req, res) => {
         name: name.trim(),
         phone: phone.trim(),
         password_hash: passwordHash,
-        subscription_status: 'pending', // becomes 'active' after payment
+        subscription_status: 'pending',
+        daily_question_count: 3,
+        preferred_categories: ['allgemeinwissen','psychologie','geschichte','wissenschaft','philosophie','wirtschaft','natur','kultur'],
       })
       .select('id, email, name, phone')
       .single();
@@ -280,6 +282,8 @@ router.post('/google/complete', async (req, res) => {
         phone: formattedPhone,
         password_hash: randomPw,
         subscription_status: 'pending',
+        daily_question_count: 3,
+        preferred_categories: ['allgemeinwissen','psychologie','geschichte','wissenschaft','philosophie','wirtschaft','natur','kultur'],
       })
       .select('id, email, name, phone')
       .single();

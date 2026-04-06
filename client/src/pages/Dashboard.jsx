@@ -74,8 +74,8 @@ export default function Dashboard() {
   const isPaid = searchParams.get('session');
 
   const [settingsForm, setSettingsForm] = useState({
-    preferred_categories: ['allgemeinwissen'],
-    daily_question_count: 1,
+    preferred_categories: ['allgemeinwissen','psychologie','geschichte','wissenschaft','philosophie','wirtschaft','natur','kultur'],
+    daily_question_count: 3,
     difficulty_level: 5,
   });
 

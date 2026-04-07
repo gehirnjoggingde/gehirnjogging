@@ -157,7 +157,9 @@ Gib NUR das JSON-Array aus, kein Text davor oder danach, keine Markdown-Codeblö
 [{"question":"...","answer_a":"...","answer_b":"...","answer_c":"...","answer_d":"...","correct_answer":"a","explanation":"...","category":"${category}","difficulty_score":${difficulty}},...]`;
 
   const text = await callClaude(prompt);
-  const match = text.match(/\[[\s\S]*\]/);
+  // Strip markdown code blocks if present
+  const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  const match = cleaned.match(/\[[\s\S]*\]/);
   if (!match) {
     console.error('\n--- RAW RESPONSE (first 300 chars) ---\n', text.slice(0, 300));
     throw new Error(`No JSON array found`);

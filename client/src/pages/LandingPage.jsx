@@ -224,7 +224,7 @@ export default function LandingPage() {
         <div className="container-sm">
           <Reveal className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Ein Plan. Kein Bullshit.</h2>
-            <p className="text-gray-500">Weniger als ein Kaffee im Monat.</p>
+            <p className="text-gray-500">☕ Kostet weniger als ein Kaffee pro Monat.</p>
           </Reveal>
           <Reveal type="scale-in">
             <div className="relative border-2 border-brand-600 rounded-3xl p-8 bg-white shadow-glow">

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { getToken } from './services/auth';
 import LandingPage from './pages/LandingPage';
+import LandingPageV2 from './pages/LandingPageV2';
 import SignupPage from './pages/SignupPage';
 import PaymentPage from './pages/PaymentPage';
 import Dashboard from './pages/Dashboard';
@@ -20,6 +21,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/v2" element={<LandingPageV2 />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<SignupPage mode="login" />} />
         <Route path="/payment" element={<PrivateRoute><PaymentPage /></PrivateRoute>} />

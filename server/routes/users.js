@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const supabase = require('../services/supabaseClient');
 const authMiddleware = require('../middleware/auth');
 
@@ -80,6 +81,31 @@ router.put('/settings', async (req, res) => {
   }
 
   return res.json(user);
+});
+
+// PUT /api/users/password
+router.put('/password', async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword)
+    return res.status(400).json({ error: 'Aktuelles und neues Passwort erforderlich' });
+  if (newPassword.length < 8)
+    return res.status(400).json({ error: 'Neues Passwort muss mindestens 8 Zeichen haben' });
+
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('password_hash')
+    .eq('id', req.user.id)
+    .single();
+
+  if (error || !user) return res.status(404).json({ error: 'Benutzer nicht gefunden' });
+
+  const valid = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!valid) return res.status(400).json({ error: 'Aktuelles Passwort ist falsch' });
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await supabase.from('users').update({ password_hash: passwordHash }).eq('id', req.user.id);
+
+  return res.json({ message: 'Passwort erfolgreich geändert' });
 });
 
 // POST /api/users/skip-today

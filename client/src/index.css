@@ -132,6 +132,120 @@
   80%     { transform: translateX(4px); }
 }
 
+/* ══════════════════════════════════════════════════════════
+   V2 ANIMATIONS
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Scroll progress bar ─────────────────────────────────── */
+.scroll-progress {
+  position: fixed; top: 0; left: 0; height: 3px; z-index: 9999;
+  background: linear-gradient(90deg, #06b6d4, #2563eb, #7c3aed);
+  transform-origin: left; pointer-events: none;
+}
+
+/* ── Floating orbs ───────────────────────────────────────── */
+@keyframes floatA {
+  0%,100% { transform: translateY(0)   scale(1);    }
+  50%     { transform: translateY(-40px) scale(1.05); }
+}
+@keyframes floatB {
+  0%,100% { transform: translateY(0)   scale(1);    }
+  50%     { transform: translateY(30px)  scale(0.96); }
+}
+@keyframes floatC {
+  0%,100% { transform: translate(0,0);   }
+  33%     { transform: translate(20px,-25px); }
+  66%     { transform: translate(-15px,15px); }
+}
+.orb-a { animation: floatA 8s ease-in-out infinite; }
+.orb-b { animation: floatB 11s ease-in-out infinite; }
+.orb-c { animation: floatC 14s ease-in-out infinite; }
+.orb-d { animation: floatA 6s  ease-in-out infinite reverse; }
+.orb-e { animation: floatB 9s  ease-in-out infinite 2s; }
+.orb-f { animation: floatC 12s ease-in-out infinite 4s; }
+
+/* ── Mesh gradient background ────────────────────────────── */
+@keyframes meshShift {
+  0%   { background-position: 0% 0%,   100% 100%, 0% 100%, 100% 0%;   }
+  25%  { background-position: 50% 0%,  50%  100%, 0%  50%,  100% 50%; }
+  50%  { background-position: 100% 0%, 0%   100%, 50% 100%, 50%  0%;  }
+  75%  { background-position: 50% 50%, 50%  50%,  0%  0%,   100% 100%; }
+  100% { background-position: 0% 0%,   100% 100%, 0% 100%, 100% 0%;   }
+}
+.mesh-bg {
+  background:
+    radial-gradient(ellipse at var(--p1,0% 0%),     rgba(6,182,212,.25)  0%, transparent 60%),
+    radial-gradient(ellipse at var(--p2,100% 100%),  rgba(124,58,237,.2)  0%, transparent 60%),
+    radial-gradient(ellipse at var(--p3,0% 100%),    rgba(37,99,235,.2)   0%, transparent 60%),
+    radial-gradient(ellipse at var(--p4,100% 0%),    rgba(16,185,129,.15) 0%, transparent 60%);
+  background-size: 200% 200%;
+  animation: meshShift 12s ease infinite;
+}
+
+/* ── Infinite marquee ────────────────────────────────────── */
+@keyframes marquee      { from { transform: translateX(0); }   to { transform: translateX(-50%); } }
+@keyframes marqueeBack  { from { transform: translateX(-50%); } to { transform: translateX(0); }   }
+.marquee-track        { animation: marquee     30s linear infinite; }
+.marquee-track-rev    { animation: marqueeBack 36s linear infinite; }
+.marquee-wrap:hover .marquee-track,
+.marquee-wrap:hover .marquee-track-rev { animation-play-state: paused; }
+
+/* ── Shimmer on pricing card ─────────────────────────────── */
+@keyframes shimmer {
+  0%   { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(220%)  skewX(-15deg); }
+}
+.shimmer-card { position: relative; overflow: hidden; }
+.shimmer-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.18) 50%, transparent 60%);
+  animation: shimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Spotlight card hover ────────────────────────────────── */
+.spotlight-card {
+  position: relative; overflow: hidden;
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.35);
+}
+.spotlight-card::before {
+  content: '';
+  position: absolute; inset: 0; opacity: 0;
+  background: radial-gradient(400px circle at var(--mx,50%) var(--my,50%), rgba(37,99,235,.12), transparent 70%);
+  transition: opacity .3s;
+  pointer-events: none;
+}
+.spotlight-card:hover::before { opacity: 1; }
+
+/* ── 3D tilt container ───────────────────────────────────── */
+.tilt-wrap { transform-style: preserve-3d; transition: transform .08s linear; }
+
+/* ── Magnetic button ─────────────────────────────────────── */
+.magnetic { transition: transform .25s cubic-bezier(.16,1,.3,1); }
+
+/* ── Counter number ──────────────────────────────────────── */
+.counter-num { font-variant-numeric: tabular-nums; }
+
+/* ── FAQ accordion ───────────────────────────────────────── */
+.faq-body {
+  overflow: hidden; max-height: 0;
+  transition: max-height .45s cubic-bezier(.16,1,.3,1), opacity .3s;
+  opacity: 0;
+}
+.faq-body.open { opacity: 1; }
+.faq-icon { transition: transform .35s cubic-bezier(.16,1,.3,1); }
+.faq-icon.open { transform: rotate(45deg); }
+
+/* ── SVG wave dividers ───────────────────────────────────── */
+.wave-divider { display: block; width: 100%; overflow: hidden; line-height: 0; }
+.wave-divider svg { display: block; }
+
+/* ── Word split reveal (GSAP target) ─────────────────────── */
+.word-wrap { overflow: hidden; display: inline-block; }
+.word      { display: inline-block; }
+
 /* ── Range slider ────────────────────────────────────────── */
 input[type="range"] {
   -webkit-appearance: none; appearance: none;

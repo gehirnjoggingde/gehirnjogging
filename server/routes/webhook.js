@@ -164,10 +164,10 @@ router.post('/twilio', async (req, res) => {
     if (remainingUnanswered > 0) {
       feedback += `📊 *${answeredNumber} von ${dailyCount} Fragen beantwortet* – gleich kommt die nächste!`;
     } else {
-      feedback += `🎉 *Alle ${dailyCount} Fragen für heute erledigt!* Bis morgen! 🧠`;
+      feedback += `🎉 *Alle ${dailyCount} Fragen für heute erledigt!* Bis morgen! 🧠\n\n📱 Mehr oder weniger Fragen, andere Kategorien oder eine andere Uhrzeit?\nPasse alles bequem im Dashboard an:\n👉 gehirnjoggingclub.de/dashboard`;
     }
   } else {
-    feedback += `Bis morgen! 🧠`;
+    feedback += `Bis morgen! 🧠\n\n📱 Mehr oder weniger Fragen, andere Kategorien oder eine andere Uhrzeit?\nPasse alles bequem im Dashboard an:\n👉 gehirnjoggingclub.de/dashboard`;
   }
 
   await sendFeedback(phoneNumber, feedback);

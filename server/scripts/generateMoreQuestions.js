@@ -123,7 +123,7 @@ async function callClaude(prompt) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     }),
@@ -137,20 +137,20 @@ async function callClaude(prompt) {
 }
 
 async function generateBatch(category, difficulty, subtopic, round) {
-  const prompt = `Du bist ein Quiz-Generator. Erstelle genau 25 Quizfragen auf Deutsch.
+  const prompt = `Du bist ein präziser Quizfragen-Redakteur. Erstelle genau 25 Quizfragen auf Deutsch.
 
 Thema: ${category}
-Fokus dieses Batches: ${subtopic}
+Fokus: ${subtopic}
 Schwierigkeit: ${difficulty}/3 – ${DIFFICULTY_DESCRIPTIONS[difficulty]}
-Runde: ${round} (alle Fragen müssen einzigartig und neu sein)
+Runde: ${round}
 
-Regeln:
-- Fakten 100% korrekt und verifizierbar
-- 4 Antworten, genau eine richtig
-- Falsche Antworten müssen plausibel klingen, nicht offensichtlich falsch
-- explanation: 2-4 informative Sätze mit interessantem Hintergrundwissen
-- Fragen vielfältig innerhalb des Fokus-Themas
-- Keine einfachen "Wer erfand X?" Fragen – lieber unerwartete Fakten
+QUALITÄTSREGELN – diese sind nicht verhandelbar:
+1. FAKTEN: Jede Aussage muss eindeutig wahr und allgemein anerkannt sein. Keine umstrittenen oder unsicheren Fakten. Wenn du dir nicht 100% sicher bist – lass die Frage weg und erstelle eine andere.
+2. RICHTIGE ANTWORT: Muss eindeutig und unbestreitbar korrekt sein. Kein Interpretationsspielraum.
+3. FALSCHE ANTWORTEN: Plausibel, aber klar falsch für jemanden der es weiß. Nicht absurd.
+4. ERKLÄRUNG: Muss mit der richtigen Antwort übereinstimmen und sie begründen. Die Erklärung darf NICHT widersprüchlich zur richtigen Antwort sein. 2-3 präzise Sätze.
+5. KEINE Fragen über sehr aktuelle Ereignisse (nach 2023) oder sehr spezifische lokale Fakten.
+6. KEINE Fragen wo mehrere Antworten gleichzeitig richtig sein könnten.
 
 Gib NUR das JSON-Array aus, kein Text davor oder danach, keine Markdown-Codeblöcke:
 

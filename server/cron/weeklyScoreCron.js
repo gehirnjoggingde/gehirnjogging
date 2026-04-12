@@ -7,7 +7,7 @@ const { sendFeedback } = require('../services/twilioService');
  * Checks if current Berlin time is between 10:00 and 10:09,
  * then sends each active user their weekly stats via WhatsApp.
  */
-cron.schedule('*/10 * * * 0', async () => {
+cron.schedule('0 * * * 0', async () => {
   await runWeeklyScore();
 });
 

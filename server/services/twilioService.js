@@ -11,23 +11,39 @@ async function sendQuizTemplate(phoneNumber, question) {
   const templateSid = process.env.TWILIO_QUIZ_TEMPLATE_SID;
 
   if (templateSid) {
-    return client.messages.create({
-      from: FROM,
-      to: `whatsapp:${phoneNumber}`,
-      contentSid: templateSid,
-      contentVariables: JSON.stringify({
-        '1': capitalize(question.category || 'Allgemeinwissen'),
-        '2': question.question,
-        '3': question.answer_a,
-        '4': question.answer_b,
-        '5': question.answer_c,
-        '6': question.answer_d,
-      }),
-    });
+    console.log(`[Twilio] Sending template (${templateSid}) to ${phoneNumber}`);
+    try {
+      const msg = await client.messages.create({
+        from: FROM,
+        to: `whatsapp:${phoneNumber}`,
+        contentSid: templateSid,
+        contentVariables: JSON.stringify({
+          '1': capitalize(question.category || 'Allgemeinwissen'),
+          '2': question.question,
+          '3': question.answer_a,
+          '4': question.answer_b,
+          '5': question.answer_c,
+          '6': question.answer_d,
+        }),
+      });
+      console.log(`[Twilio] Template sent OK – SID: ${msg.sid}`);
+      return msg;
+    } catch (err) {
+      console.error(`[Twilio] Template send FAILED for ${phoneNumber}:`, err.message, err.code || '');
+      throw err;
+    }
   }
 
   // Fallback: free-form (only works within 24h user-initiated window)
-  return sendQuiz(phoneNumber, question, 1, 1);
+  console.warn(`[Twilio] No TWILIO_QUIZ_TEMPLATE_SID set – falling back to free-form for ${phoneNumber}. This requires the user to have messaged within 24h.`);
+  try {
+    const msg = await sendQuiz(phoneNumber, question, 1, 1);
+    console.log(`[Twilio] Free-form sent OK – SID: ${msg.sid}`);
+    return msg;
+  } catch (err) {
+    console.error(`[Twilio] Free-form send FAILED for ${phoneNumber}:`, err.message, err.code || '', '– User likely has not messaged in 24h (WhatsApp session expired)');
+    throw err;
+  }
 }
 
 /**
@@ -87,11 +103,17 @@ async function sendQuiz(phoneNumber, question, questionNumber = 1, totalCount = 
 }
 
 async function sendFeedback(phoneNumber, text) {
-  return client.messages.create({
-    from: FROM,
-    to: `whatsapp:${phoneNumber}`,
-    body: text,
-  });
+  try {
+    const msg = await client.messages.create({
+      from: FROM,
+      to: `whatsapp:${phoneNumber}`,
+      body: text,
+    });
+    return msg;
+  } catch (err) {
+    console.error(`[Twilio] sendFeedback FAILED for ${phoneNumber}:`, err.message, err.code || '');
+    throw err;
+  }
 }
 
 function capitalize(str) {

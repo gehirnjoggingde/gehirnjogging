@@ -63,7 +63,7 @@ async function getQuestionsForUser(user, count = null) {
   // Fallback 1: ignore difficulty filter, keep category
   if (pool.length < questionCount) {
     let q2 = supabase.from('quiz_questions').select('*').in('category', categories).limit(50);
-    if (answeredIds.length > 0) q2 = q2.not('id', 'in', `(${answeredIds.join(',')})`);
+    if (excludeIds.length > 0) q2 = q2.not('id', 'in', `(${excludeIds.join(',')})`);
     const { data: more } = await q2;
     pool = [...pool, ...(more || [])];
   }

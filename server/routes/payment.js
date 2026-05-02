@@ -2,7 +2,7 @@ const express = require('express');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const supabase = require('../services/supabaseClient');
 const authMiddleware = require('../middleware/auth');
-const { sendWelcomeTemplate, sendQuiz } = require('../services/twilioService');
+const { sendWelcomeTemplate, sendQuiz, sendFeedback } = require('../services/twilioService');
 const { getQuestionsForUser } = require('../services/quizService');
 
 const router = express.Router();

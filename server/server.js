@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const rateLimit = require('express-rate-limit');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -41,11 +42,30 @@ app.use('/api/payment/webhook', bodyParser.raw({ type: 'application/json' }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// ─── Rate limiters ───────────────────────────────────────────────────────────
+// Auth: max 10 attempts per 15 min per IP (brute-force protection)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Versuche. Bitte warte 15 Minuten.' },
+});
+
+// General API: 120 req/min per IP (loose safety net)
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen.' },
+});
+
 // ─── Routes ──────────────────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/payment', paymentRoutes);
-app.use('/api/quiz', quizRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/users', apiLimiter, userRoutes);
+app.use('/api/payment', apiLimiter, paymentRoutes);
+app.use('/api/quiz', apiLimiter, quizRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhook', webhookRoutes); // Twilio incoming messages
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const supabase = require('../services/supabaseClient');
 const { generateDailyQuiz } = require('../services/quizService');
+const { sendQuizToUser } = require('../cron/dailyQuizCron');
 
 const router = express.Router();
 
@@ -105,6 +106,47 @@ router.get('/users', adminAuth, async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   return res.json(data);
+});
+
+// POST /api/admin/send-quiz-now
+// Manually trigger quiz sending for all active users (bypasses time window).
+// Deletes today's pending (unanswered) records first so they get fresh questions.
+router.post('/send-quiz-now', adminAuth, async (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+
+  // Get all active, non-paused users
+  const { data: users, error } = await supabase
+    .from('users')
+    .select('id, name, phone, quiz_time, daily_question_count, difficulty_level, preferred_categories')
+    .eq('is_paused', false)
+    .in('subscription_status', ['active']);
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (!users?.length) return res.json({ sent: 0, message: 'Keine aktiven Nutzer' });
+
+  const results = [];
+
+  for (const user of users) {
+    try {
+      // Delete today's pending (unsent) records so cron logic sees 0 sent
+      await supabase
+        .from('user_answers')
+        .delete()
+        .eq('user_id', user.id)
+        .is('user_answer', null)
+        .gte('answered_at', `${today}T00:00:00`);
+
+      await sendQuizToUser(user);
+      results.push({ phone: user.phone, status: 'ok' });
+    } catch (err) {
+      console.error(`[Admin send-quiz-now] Failed for ${user.phone}:`, err.message);
+      results.push({ phone: user.phone, status: 'error', error: err.message });
+    }
+  }
+
+  const sent = results.filter(r => r.status === 'ok').length;
+  console.log(`[Admin send-quiz-now] Done – ${sent}/${users.length} sent`);
+  return res.json({ sent, total: users.length, results });
 });
 
 module.exports = router;

@@ -111,4 +111,4 @@ async function sendQuizToUser(user) {
 function pad(n) { return String(n).padStart(2, '0'); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-module.exports = { runQuizDispatch };
+module.exports = { runQuizDispatch, sendQuizToUser };

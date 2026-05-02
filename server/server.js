@@ -52,6 +52,38 @@ app.use('/api/webhook', webhookRoutes); // Twilio incoming messages
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
+// ─── Twilio debug (no credentials exposed) ───────────────────────────────────
+app.get('/api/debug/twilio', async (req, res) => {
+  const key = process.env.ADMIN_KEY;
+  if (!key || req.query.key !== key) return res.status(403).json({ error: 'Forbidden' });
+
+  const sid = process.env.TWILIO_ACCOUNT_SID || '';
+  const token = process.env.TWILIO_AUTH_TOKEN || '';
+  const quizSid = process.env.TWILIO_QUIZ_TEMPLATE_SID || '';
+  const welcomeSid = process.env.TWILIO_WELCOME_TEMPLATE_SID || '';
+
+  let twilioOk = false;
+  let twilioError = null;
+  try {
+    const twilio = require('twilio');
+    const client = twilio(sid, token);
+    const account = await client.api.accounts(sid).fetch();
+    twilioOk = account.status === 'active';
+  } catch (e) {
+    twilioError = e.message;
+  }
+
+  res.json({
+    twilio_account_sid: sid ? sid.substring(0, 8) + '...' : 'MISSING',
+    twilio_auth_token: token ? '✅ set' : '❌ MISSING',
+    quiz_template_sid: quizSid || '❌ MISSING',
+    welcome_template_sid: welcomeSid || '❌ MISSING',
+    twilio_account_active: twilioOk,
+    twilio_error: twilioError,
+    ts: new Date().toISOString(),
+  });
+});
+
 // ─── Global error handler ────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('[Server Error]', err);
